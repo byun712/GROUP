@@ -46,7 +46,7 @@ export function approvalApi(db,path,method,user,body,send){
  }
  if(/^\/api\/approvals\/\d+\/action$/.test(path)&&method==='POST'){
   const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM approval_requests WHERE id=?').get(id);if(!row)return send(404,{error:'기안 문서가 없습니다'});
-  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.user_id!==user.id&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
+  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if((row.user_id!==user.id||user.role==='manager')&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
   db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE approval_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO approval_decisions(request_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});

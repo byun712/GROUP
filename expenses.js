@@ -1,3 +1,4 @@
+import {postApprovedExpense} from './accounting.js';
 const categories=['식비','교통비','소모품비','통신비','교육비','기타'];
 const payments=['법인카드','개인카드','계좌이체','현금'];
 const evidenceTypes=['영수증','세금계산서','카드전표','기타'];
@@ -29,8 +30,8 @@ export function expenseApi(db,path,method,user,body,send){
  }
  if(/^\/api\/expenses\/\d+\/action$/.test(path)&&method==='POST'){
   const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM expense_requests WHERE id=?').get(id);if(!row)return send(404,{error:'지출결의서가 없습니다'});
-  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.user_id!==user.id&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
-  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE expense_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO expense_decisions(expense_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
+  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if((row.user_id!==user.id||user.role==='manager')&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
+  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE expense_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO expense_decisions(expense_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());if(next==='approved')postApprovedExpense(db,row,user.id);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});
 }

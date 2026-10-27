@@ -1,0 +1,28 @@
+ELSOLTEC 그룹웨어 - 전체 프로젝트
+
+1. ZIP 파일을 먼저 모두 압축 해제하세요. ZIP 안에서 바로 실행하지 마세요.
+2. https://nodejs.org/ 에서 Node.js 24 이상을 설치하세요.
+3. 처음이라면 CREATE-ACCOUNT.cmd를 더블클릭해 계정을 만드세요.
+   Login ID: 원하는 아이디 (예: soltec@elsoltec.com)
+   Display name: 이름
+   Role: 직원 employee / 실장 manager / 대표이사 ceo
+   New password: 새 비밀번호 12자 이상. 입력 내용이 안 보이는 것이 정상입니다.
+   카페24 메일과 별개의 그룹웨어 계정입니다. 기본 비밀번호는 없습니다.
+4. START-LOCAL.cmd를 더블클릭하세요.
+5. Groupware started가 나오면 Edge에서 http://127.0.0.1:3000 을 여세요.
+6. 창을 열어 둔 상태에서 로그인하세요. 종료는 Ctrl+C입니다.
+
+이전 버전 사용자는 반드시 확인하세요.
+- 기존 서버를 종료한 뒤 기존 data 폴더를 새 폴더 안으로 복사하세요.
+- data 안에는 계정과 업무 기록이 있습니다. 원본을 삭제하지 마세요.
+- 기존 계정을 그대로 사용하므로 다시 만들 필요 없습니다.
+- 새 버전 실행 후 Edge에서 Ctrl+F5로 새로고침하세요.
+- CREATE-ACCOUNT.cmd에서 동일 아이디를 다시 만들면 중복 오류가 납니다.
+
+START-LOCAL.cmd는 내 PC 전용 테스트입니다.
+출퇴근 허용 IP를 로컬 주소로 설정하며 인터넷에 공개하지 않습니다.
+실제 회사 운영에는 README의 HTTPS/사무실 IP 배포 절차가 필요합니다.
+Node.js 설치 파일과 기존 DB, 비밀번호는 이 패키지에 포함되지 않습니다.
+이메일은 카페24 웹메일 링크로 연결됩니다.
+
+전체 소스·테스트·배포 설정: README.md 참조

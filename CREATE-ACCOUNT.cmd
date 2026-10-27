@@ -8,6 +8,16 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
+if not exist "node_modules\nodemailer\package.json" (
+ echo Installing required mail packages...
+ call npm.cmd ci --cache "%TEMP%\elsoltec-npm-cache"
+ if errorlevel 1 (
+  echo Package installation failed. Check your internet connection.
+  pause
+  exit /b 1
+ )
+)
+
 set "DATA_DIR=%~dp0data"
 echo Create a groupware account. This is NOT your email password.
 echo Roles: employee = staff, manager = director, ceo = CEO.

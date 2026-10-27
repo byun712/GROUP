@@ -14,6 +14,15 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
+if not exist "node_modules\nodemailer\package.json" (
+ echo Installing required mail packages...
+ call npm.cmd ci --cache "%TEMP%\elsoltec-npm-cache"
+ if errorlevel 1 (
+  echo Package installation failed. Check your internet connection.
+  pause
+  exit /b 1
+ )
+)
 set "HOST=127.0.0.1"
 set "PORT=3000"
 set "OFFICE_IP=127.0.0.1"

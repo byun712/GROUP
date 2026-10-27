@@ -1,5 +1,5 @@
 import {DatabaseSync,backup} from 'node:sqlite';
-import {mkdirSync,openSync,closeSync,chmodSync,unlinkSync,existsSync} from 'node:fs';
+import {mkdirSync,openSync,closeSync,chmodSync,unlinkSync,existsSync,copyFileSync,renameSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 export async function snapshot(source,target){
@@ -13,6 +13,12 @@ export async function snapshot(source,target){
   if(!['users','sessions','leave_requests','decisions','attendance'].every(t=>tables.includes(t)))throw Error('그룹웨어 데이터베이스가 아닙니다');
   mkdirSync(dirname(target),{recursive:true,mode:0o700});closeSync(openSync(target,'wx',0o600));reserved=true;
   await backup(db,target);chmodSync(target,0o600);
+  // Keep the mail encryption key next to snapshots; never print or embed it.
+  const keySource=existsSync(source+'.mail-key')?source+'.mail-key':resolve(dirname(source),'mail-key');
+  if(tables.includes('mail_accounts')&&db.prepare('SELECT count(*) n FROM mail_accounts').get().n){
+   if(!existsSync(keySource))throw Error('메일 암호화 키가 없어 백업할 수 없습니다');
+   copyFileSync(keySource,target+'.mail-key',1);chmodSync(target+'.mail-key',0o600);
+  }
  }catch(error){if(reserved)unlinkSync(target);throw error;}finally{db?.close();}
 }
 export async function restore(source,destination){
@@ -20,6 +26,7 @@ export async function restore(source,destination){
  if(existsSync(destination))throw Error('복원은 존재하지 않는 새 디렉터리에만 가능합니다');
  mkdirSync(destination,{recursive:false,mode:0o700});
  await snapshot(source,resolve(destination,'group.db'));
+ if(existsSync(resolve(destination,'group.db.mail-key')))renameSync(resolve(destination,'group.db.mail-key'),resolve(destination,'mail-key'));
  const db=new DatabaseSync(resolve(destination,'group.db'));
  try{db.exec('DELETE FROM sessions');db.exec('PRAGMA wal_checkpoint(TRUNCATE)');}finally{db.close();}
 }

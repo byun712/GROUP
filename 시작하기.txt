@@ -5,7 +5,7 @@ ELSOLTEC 그룹웨어 - 전체 프로젝트
 3. 처음이라면 CREATE-ACCOUNT.cmd를 더블클릭해 계정을 만드세요.
    Login ID: 원하는 아이디 (예: soltec@elsoltec.com)
    Display name: 이름
-   Role: 직원 employee / 실장 manager / 대표이사 ceo
+   Role: 직원 employee / 이사 manager / 대표이사 ceo
    New password: 새 비밀번호 12자 이상. 입력 내용이 안 보이는 것이 정상입니다.
    카페24 메일과 별개의 그룹웨어 계정입니다. 기본 비밀번호는 없습니다.
 4. START-LOCAL.cmd를 더블클릭하세요.
@@ -23,6 +23,10 @@ START-LOCAL.cmd는 내 PC 전용 테스트입니다.
 출퇴근 허용 IP를 로컬 주소로 설정하며 인터넷에 공개하지 않습니다.
 실제 회사 운영에는 README의 HTTPS/사무실 IP 배포 절차가 필요합니다.
 Node.js 설치 파일과 기존 DB, 비밀번호는 이 패키지에 포함되지 않습니다.
-이메일은 카페24 웹메일 링크로 연결됩니다.
+이메일 메뉴에서 POP3 수신, SMTP 발신 및 첨부파일을 사용할 수 있습니다.
+계정 추가에 카페24 메일 비밀번호를 입력하세요. 그룹웨어 비밀번호와 별개입니다.
+첫 실행 시 메일 패키지 설치를 위해 인터넷 연결이 필요합니다.
+메일 계정 설정 후에는 data/group.db와 data/mail-key를 함께 백업하세요.
+자세한 설정: docs/MAIL-UPDATE.md
 
 전체 소스·테스트·배포 설정: README.md 참조

@@ -13,7 +13,7 @@ const string=(value,max,required=true)=>typeof value==='string'&&value.length<=m
 export function validateExpense(body){
  if(!body||typeof body!=='object'||Array.isArray(body))throw Error('지출결의서 입력 형식을 확인하세요');
  const {form_type='expense',project_name='',project_code='',title,expense_date,vendor,payment,evidence_type,evidence_ref='',notes='',items}=body;
- if(!['expense','research_expense'].includes(form_type)||!string(project_name,120,form_type==='research_expense')||!string(project_code,80,false)||!string(title,120)||!validDate(expense_date)||!string(vendor,100)||!payments.includes(payment)||!evidenceTypes.includes(evidence_type)||!string(evidence_ref,100,false)||!string(notes,2000,false)||!Array.isArray(items)||items.length<1||items.length>20)throw Error('제목·지출일·거래처·결제수단·증빙 종류와 항목(1~20개)을 확인하세요');
+ if(form_type!=='expense'||!string(project_name,120,form_type==='research_expense')||!string(project_code,80,false)||!string(title,120)||!validDate(expense_date)||!string(vendor,100)||!payments.includes(payment)||!evidenceTypes.includes(evidence_type)||!string(evidence_ref,100,false)||!string(notes,2000,false)||!Array.isArray(items)||items.length<1||items.length>20)throw Error('제목·지출일·거래처·결제수단·증빙 종류와 항목(1~20개)을 확인하세요');
  let supply=0,tax=0;const clean=[];
  for(const item of items){if(!item||!categories.includes(item.category)||!string(item.description,100)||!Number.isSafeInteger(item.supply)||!Number.isSafeInteger(item.tax)||item.supply<0||item.tax<0||item.supply+item.tax<=0||item.supply+item.tax>1000000000000)throw Error('항목명과 금액을 확인하세요. 원 단위의 0 이상 정수를 입력하고 항목 합계는 0보다 커야 합니다');supply+=item.supply;tax+=item.tax;clean.push({category:item.category,description:item.description.trim(),supply:item.supply,tax:item.tax});}
  if(supply+tax>1000000000000)throw Error('총액은 1조 원 이하여야 합니다');
@@ -30,7 +30,7 @@ export function expenseApi(db,path,method,user,body,send){
  }
  if(/^\/api\/expenses\/\d+\/action$/.test(path)&&method==='POST'){
   const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM expense_requests WHERE id=?').get(id);if(!row)return send(404,{error:'지출결의서가 없습니다'});
-  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if((row.user_id!==user.id||user.role==='manager')&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
+  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
   db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE expense_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO expense_decisions(expense_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());if(next==='approved')postApprovedExpense(db,row,user.id);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});

@@ -1,7 +1,6 @@
 // Template metadata is shared with the browser through an authenticated API.
 const field=(key,label,type='text',extra={})=>({key,label,type,required:true,...extra});
 export const approvalTemplates=[
- {id:'research_expense',name:'지출결의서(연구비)',storage:'expense',description:'연구과제와 지출 항목을 기록합니다.'},
  {id:'purchase_order',name:'발주서',storage:'draft',fields:[field('vendor','거래처'),field('due_date','납기일','date'),field('items','발주 품목·규격·수량','textarea'),field('amount','발주 총액 (원)','money')]},
  {id:'proposal',name:'품의서',storage:'draft',fields:[field('purpose','품의 목적'),field('content','품의 내용','textarea'),field('amount','예상 비용 (원)','money')]},
  {id:'overtime',name:'초과근무신청서',storage:'draft',fields:[field('work_date','근무일','date'),field('start_time','시작 시각','time'),field('end_time','종료 시각','time'),field('content','업무 내용','textarea')],description:'같은 날짜의 초과근무를 신청합니다. 자정을 넘으면 날짜별로 나눠 신청하세요.'},
@@ -46,7 +45,7 @@ export function approvalApi(db,path,method,user,body,send){
  }
  if(/^\/api\/approvals\/\d+\/action$/.test(path)&&method==='POST'){
   const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM approval_requests WHERE id=?').get(id);if(!row)return send(404,{error:'기안 문서가 없습니다'});
-  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if((row.user_id!==user.id||user.role==='manager')&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
+  let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
   db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE approval_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO approval_decisions(request_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER REFER
 CREATE TABLE IF NOT EXISTS leave_requests(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id),kind TEXT NOT NULL,start TEXT NOT NULL,end TEXT NOT NULL,reason TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'manager',created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS decisions(id INTEGER PRIMARY KEY,leave_id INTEGER REFERENCES leave_requests(id),actor INTEGER REFERENCES users(id),action TEXT NOT NULL,created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id),day TEXT NOT NULL,clock_in TEXT NOT NULL,clock_out TEXT,ip TEXT NOT NULL,UNIQUE(user_id,day));`);
+db.exec(`CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,author INTEGER NOT NULL REFERENCES users(id),title TEXT NOT NULL,content TEXT NOT NULL,created TEXT NOT NULL);`);
 // Additive migrations preserve existing employee and business records.
 for(const [table,column,definition] of [['users','active','INTEGER NOT NULL DEFAULT 1'],['users','totp_secret','TEXT'],['users','totp_pending','TEXT'],['users','totp_last','INTEGER NOT NULL DEFAULT -1'],['sessions','mfa','INTEGER NOT NULL DEFAULT 0']]){
  if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name===column))db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
@@ -42,6 +43,17 @@ if(path==='/api/security/password'&&req.method==='POST'){
 }
 if(path==='/api/me'&&req.method==='GET')return send(200,{user,officeAllowed:ipOf(req)===office,mailAllowed:user.role==='manager'});
 if(path==='/api/logout'&&req.method==='POST'){db.prepare('DELETE FROM sessions WHERE token=?').run(cookie(req));res.setHeader('Set-Cookie','session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(200,{ok:true});}
+if(path==='/api/announcements'&&req.method==='GET')return send(200,db.prepare('SELECT a.*,u.name FROM announcements a JOIN users u ON u.id=a.author ORDER BY a.id DESC LIMIT 100').all());
+if(path==='/api/announcements'&&req.method==='POST'){
+ if(!['manager','ceo'].includes(user.role))return send(403,{error:'실장과 대표이사만 공지를 작성할 수 있습니다'});
+ const {title,content}=body;if(typeof title!=='string'||!title.trim()||title.length>120||typeof content!=='string'||!content.trim()||content.length>8000)return send(400,{error:'제목(120자 이내)과 내용(8000자 이내)을 입력하세요'});
+ db.prepare('INSERT INTO announcements(author,title,content,created) VALUES(?,?,?,?)').run(user.id,title.trim(),content.trim(),new Date().toISOString());return send(201,{ok:true});
+}
+if(path==='/api/calendar'&&req.method==='GET'){
+ const month=new URL(req.url,'http://localhost').searchParams.get('month');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))return send(400,{error:'조회 월을 확인하세요'});
+ const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10);
+ return send(200,db.prepare("SELECT l.id,l.kind,l.start,l.end,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE l.status='approved' AND l.start<=? AND l.end>=? ORDER BY l.start,l.id").all(end,month+'-01'));
+}
 if(path==='/api/leaves'&&req.method==='GET'){const rows=user.role==='employee'?db.prepare('SELECT l.*,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE user_id=? ORDER BY l.id DESC').all(user.id):db.prepare('SELECT l.*,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id ORDER BY l.id DESC').all();for(const row of rows)row.history=db.prepare('SELECT d.action,d.created,u.name FROM decisions d JOIN users u ON u.id=d.actor WHERE leave_id=? ORDER BY d.id').all(row.id);return send(200,rows);}
 if(path==='/api/leaves'&&req.method==='POST'){const {kind,start,end,reason}=body;const valid=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;if(!['연차','오전 반차','오후 반차'].includes(kind)||!valid(start)||!valid(end)||start>end||(kind!=='연차'&&start!==end)||typeof reason!=='string'||!reason.trim()||reason.length>2000)return send(400,{error:'휴가 종류·기간·사유를 확인하세요'});db.prepare('INSERT INTO leave_requests(user_id,kind,start,end,reason,created) VALUES(?,?,?,?,?,?)').run(user.id,kind,start,end,reason.trim(),new Date().toISOString());return send(201,{ok:true});}
 if(/^\/api\/leaves\/\d+\/action$/.test(path)&&req.method==='POST'){const id=Number(path.split('/')[3]);const row=db.prepare('SELECT * FROM leave_requests WHERE id=?').get(id);if(!row)return send(404,{error:'문서가 없습니다'});let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.user_id!==user.id&&row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE leave_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO decisions(leave_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}return send(200,{ok:true});}

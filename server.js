@@ -4,6 +4,7 @@ import {randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';
 import {mkdirSync,readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {initializeApprovals,approvalApi} from './approvals.js';
 import {initializeExpenses,expenseApi} from './expenses.js';
 import {clientIp} from './network.js';
 const root=resolve(import.meta.dirname);
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS decisions(id INTEGER PRIMARY KEY,leave_id INTEGER REF
 CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id),day TEXT NOT NULL,clock_in TEXT NOT NULL,clock_out TEXT,ip TEXT NOT NULL,UNIQUE(user_id,day));`);
 db.exec(`CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,author INTEGER NOT NULL REFERENCES users(id),title TEXT NOT NULL,content TEXT NOT NULL,created TEXT NOT NULL);`);
 initializeExpenses(db);
+initializeApprovals(db);
 // Additive migrations preserve existing employee and business records.
 for(const [table,column,definition] of [['users','active','INTEGER NOT NULL DEFAULT 1'],['users','totp_secret','TEXT'],['users','totp_pending','TEXT'],['users','totp_last','INTEGER NOT NULL DEFAULT -1'],['sessions','mfa','INTEGER NOT NULL DEFAULT 0']]){
  if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name===column))db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
@@ -39,6 +41,7 @@ if(req.method==='POST'){const origin=req.headers.origin;const expected=process.e
 let body={};if(req.method==='POST'){let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>16000)return send(413,{error:'요청이 너무 큽니다'});}try{body=JSON.parse(raw);}catch{return send(400,{error:'잘못된 JSON'});}}
 if(path==='/api/login'&&req.method==='POST'){const ip=ipOf(req),now=Date.now();let limit=failures.get(ip);if(limit&&limit.until<now){failures.delete(ip);limit=null;}if(limit?.count>=10)return send(429,{error:'잠시 후 다시 시도하세요'});const u=db.prepare('SELECT * FROM users WHERE login=?').get(String(body.login||''));const pass=String(body.password||'');const actual=hash(pass,u?.salt||'invalid');if(!u||!u.active||!timingSafeEqual(actual,Buffer.from(u.hash,'hex'))){failures.set(ip,{count:(limit?.count||0)+1,until:limit?.until||now+900000});return send(401,{error:'계정 또는 비밀번호를 확인하세요'});}failures.delete(ip);const token=randomBytes(32).toString('hex');db.prepare('DELETE FROM sessions WHERE expires<?').run(now);db.prepare('INSERT INTO sessions(token,user_id,expires) VALUES(?,?,?)').run(token,u.id,now+8*3600000);res.setHeader('Set-Cookie',`session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?'; Secure':''}`);return send(200,{ok:true});}
 const user=db.prepare('SELECT u.id,u.login,u.name,u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires>? AND u.active=1').get(cookie(req),Date.now());if(!user)return send(401,{error:'로그인이 필요합니다'});
+if(path==='/api/approval-templates'||path==='/api/approvals'||path.startsWith('/api/approvals/'))return approvalApi(db,path,req.method,user,body,send);
 if(path==='/api/expenses'||path.startsWith('/api/expenses/'))return expenseApi(db,path,req.method,user,body,send);
 if(path==='/api/security/password'&&req.method==='POST'){
  const u=db.prepare('SELECT * FROM users WHERE id=?').get(user.id);if(typeof body.password!=='string'||body.password.length<12||body.password.length>256||!timingSafeEqual(hash(String(body.current||''),u.salt),Buffer.from(u.hash,'hex')))return send(400,{error:'현재 비밀번호 및 새 비밀번호(12~256자)를 확인하세요'});

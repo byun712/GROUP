@@ -1,3 +1,4 @@
+import {purgeUser} from './user-purge.js';
 import {randomBytes,scryptSync} from 'node:crypto';
 export const JOB_TITLES=['대표이사','이사','본부장','연구소장','부장','차장','과장','대리','사원'];
 export const ORGANIZATIONS=['경영본부','기업부설연구소','사업본부','기술개발본부'];
@@ -5,7 +6,7 @@ export const FIRST_ADMIN='soltec@elsoltec.com';
 export function initializeAccounts(db){
  if(!db.prepare('PRAGMA table_info(users)').all().some(c=>c.name==='is_admin'))db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
  for(const column of ['job_title','organization','phone','email'])if(!db.prepare('PRAGMA table_info(users)').all().some(c=>c.name===column))db.exec(`ALTER TABLE users ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
- db.exec(`CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS account_audit(id INTEGER PRIMARY KEY,actor INTEGER,action TEXT NOT NULL,target INTEGER,details TEXT NOT NULL,created TEXT NOT NULL);`);bootstrapAdmin(db);
+ db.exec(`CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS account_audit(id INTEGER PRIMARY KEY,actor INTEGER,action TEXT NOT NULL,target INTEGER,details TEXT NOT NULL,created TEXT NOT NULL);`);db.prepare("INSERT INTO app_settings(key,value) VALUES('user_id_sequence',?) ON CONFLICT(key) DO UPDATE SET value=CAST(max(CAST(value AS INTEGER),CAST(excluded.value AS INTEGER)) AS TEXT)").run(String(db.prepare('SELECT coalesce(max(id),0) n FROM users').get().n));bootstrapAdmin(db);
 }
 export function bootstrapAdmin(db){if(db.prepare("SELECT value FROM app_settings WHERE key='admin_bootstrapped'").get())return;const u=db.prepare('SELECT id FROM users WHERE lower(trim(login))=? AND active=1').get(FIRST_ADMIN);if(!u)return;db.exec('BEGIN IMMEDIATE');try{db.prepare("UPDATE users SET is_admin=1,role='manager' WHERE id=?").run(u.id);db.prepare("INSERT INTO app_settings VALUES('admin_bootstrapped','1')").run();db.prepare("INSERT INTO account_audit(actor,action,target,details,created) VALUES(NULL,'bootstrap',?,'initial administrator',?)").run(u.id,new Date().toISOString());db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}}
 export function protectLastAdmin(db,id,active,isAdmin){const u=db.prepare('SELECT active,is_admin FROM users WHERE id=?').get(id);if(u?.active&&u.is_admin&&(!active||!isAdmin)&&db.prepare('SELECT count(*) n FROM users WHERE active=1 AND is_admin=1 AND id<>?').get(id).n===0)throw Error('마지막 활성 관리자는 해제하거나 비활성화할 수 없습니다');}
@@ -19,13 +20,14 @@ function profile(body,current={},required=false){const value={};for(const key of
  if(typeof value.email!=='string'||value.email.length>150||((required||value.email)&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email)))throw Error('이메일을 확인하세요');
  return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,v.trim()]));}
 function saveProfile(db,id,p){db.prepare('UPDATE users SET name=?,job_title=?,organization=?,phone=?,email=? WHERE id=?').run(p.name,p.job_title,p.organization,p.phone,p.email,id);}
-export function accountApi(db,path,method,user,body,send,addUser){
+export function accountApi(db,path,method,user,body,send,addUser,mailState){
  if(path==='/api/user-options'&&method==='GET')return send(200,{job_titles:JOB_TITLES,organizations:ORGANIZATIONS});
  if(path==='/api/users/me'&&method==='GET')return send(200,db.prepare('SELECT '+columns+' FROM users WHERE id=?').get(user.id));
  if(path==='/api/users/me/update'&&method==='POST'){
-  if(['role','active','is_admin','login','password'].some(key=>key in body))return send(403,{error:'개인 정보 화면에서는 권한이나 로그인 정보를 변경할 수 없습니다'});
+  if(['role','active','is_admin','password'].some(key=>key in body))return send(403,{error:'개인 정보 화면에서는 결재 역할이나 Admin 권한을 변경할 수 없습니다'});
   let p;try{p=profile(body,{},true);}catch(error){return send(400,{error:error.message});}
-  db.exec('BEGIN IMMEDIATE');try{saveProfile(db,user.id,p);audit(db,user,'self_profile_update',user.id,{fields:Object.keys(p)});db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
+  const old=db.prepare('SELECT login FROM users WHERE id=?').get(user.id);const login=body.login??old.login;const conflict=validateLogin(db,login,user.id);if(conflict)return send(conflict.status,{error:conflict.error});
+  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE users SET login=? WHERE id=?').run(login,user.id);if(login!==old.login)db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id);saveProfile(db,user.id,p);audit(db,user,'self_profile_update',user.id,{fields:Object.keys(p)});db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true,relogin:login!==old.login});
  }
  if(path==='/api/users'&&method==='GET')return send(200,user.is_admin?db.prepare('SELECT '+columns+' FROM users ORDER BY id').all():[db.prepare('SELECT '+columns+' FROM users WHERE id=?').get(user.id)]);
  if(!user.is_admin)return send(403,{error:'다른 사용자 관리 및 권한 변경은 Admin 권한이 필요합니다'});
@@ -35,13 +37,22 @@ export function accountApi(db,path,method,user,body,send,addUser){
   if(db.prepare('SELECT id FROM users WHERE lower(login)=lower(?)').get(body.login))return send(409,{error:'이미 사용 중인 아이디입니다'});
   addUser(body.login,p.name,body.role,body.password);const target=db.prepare('SELECT id FROM users WHERE login=?').get(body.login);saveProfile(db,target.id,p);if(body.is_admin)db.prepare('UPDATE users SET is_admin=1 WHERE id=?').run(target.id);audit(db,user,'create',target.id,{role:body.role,is_admin:body.is_admin});return send(201,{ok:true,id:target.id});
  }
- const match=/^\/api\/users\/(\d+)\/(update|password)$/.exec(path);if(match&&method==='POST'){
+ const match=/^\/api\/users\/(\d+)\/(update|password|delete)$/.exec(path);if(match&&method==='POST'){
   const id=Number(match[1]),u=db.prepare('SELECT '+columns+' FROM users WHERE id=?').get(id);if(!u)return send(404,{error:'사용자가 없습니다'});
+  if(match[2]==='delete'){
+   if(body.confirm_login!==u.login)return send(400,{error:'삭제할 사용자의 로그인 아이디를 정확히 입력하세요'});
+   try{protectLastAdmin(db,id,false,false);}catch(e){return send(409,{error:e.message});}
+   if(db.prepare('SELECT id FROM mail_accounts WHERE user_id=?').all(id).some(a=>mailState?.busy.has(a.id)))return send(409,{error:'메일 송수신 작업이 끝난 뒤 삭제하세요'});
+   purgeUser(db,id);return send(200,{ok:true,deleted:true});
+  }
   if(match[2]==='password'){if(typeof body.password!=='string'||body.password.length<12||body.password.length>256)return send(400,{error:'비밀번호는 12~256자여야 합니다'});const salt=randomBytes(16).toString('hex');db.prepare('UPDATE users SET salt=?,hash=? WHERE id=?').run(salt,scryptSync(body.password,salt,64).toString('hex'),id);db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);audit(db,user,'password_reset',id,{});return send(200,{ok:true});}
   let p;try{p=profile(body,u);}catch(error){return send(400,{error:error.message});}
   if(!['employee','manager','ceo'].includes(body.role)||typeof body.active!=='boolean'||typeof body.is_admin!=='boolean')return send(400,{error:'역할·활성 상태·Admin 권한을 확인하세요'});
   try{protectLastAdmin(db,id,body.active,body.is_admin);}catch(e){return send(409,{error:e.message});}
-  db.exec('BEGIN IMMEDIATE');try{saveProfile(db,id,p);db.prepare('UPDATE users SET role=?,active=?,is_admin=? WHERE id=?').run(body.role,Number(body.active),Number(body.is_admin),id);db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);audit(db,user,'update',id,{role:body.role,active:body.active,is_admin:body.is_admin});db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}return send(200,{ok:true});
+  const login=body.login??u.login;const conflict=validateLogin(db,login,id);if(conflict)return send(conflict.status,{error:conflict.error});
+  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE users SET login=? WHERE id=?').run(login,id);saveProfile(db,id,p);db.prepare('UPDATE users SET role=?,active=?,is_admin=? WHERE id=?').run(body.role,Number(body.active),Number(body.is_admin),id);db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);audit(db,user,'update',id,{role:body.role,active:body.active,is_admin:body.is_admin});db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});
 }
+
+function validateLogin(db,login,id){if(typeof login!=='string'||!/^[-A-Za-z0-9_.@+]{3,100}$/.test(login))return {status:400,error:'아이디는 영문·숫자·이메일 기호 3~100자로 입력하세요'};if(db.prepare('SELECT id FROM users WHERE lower(login)=lower(?) AND id<>?').get(login,id))return {status:409,error:'이미 사용 중인 아이디입니다'};}

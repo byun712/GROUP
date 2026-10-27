@@ -43,3 +43,17 @@
 ![결재 조회 화면](erp-workbench.png)
 
 ![결재 문서 상세](erp-document.png)
+
+## 추가 재생목록 분석 상태
+
+추가 자료: https://www.youtube.com/playlist?list=PLacuwcWDJIcIbq7A8FYl2p4aNcvoh8i9a
+
+개발 환경에서 재생목록 HTTPS 요청이 `Tunnel connection failed: 403 Forbidden`으로 차단되었습니다. 따라서 목록의 영상 수·제목·개별 화면을 확인하지 못했으며, 모든 영상을 시청·분석했다는 주장을 하지 않습니다. 재생목록 기반 전체 재구성은 미완료입니다. 사용자의 영상 파일 첨부가 필요합니다.
+
+이번 독립 변경은 회사명 ELSOLTEC 표기 및 지출결의서 추가입니다. 기존 첨부 영상의 표/팝업/결재 흐름을 유지했으며, 접근하지 못한 재생목록에서 가져온 기능이라고 표시하지 않습니다.
+
+### 지출결의서 화면
+
+검증용 임시 계정과 지출 데이터입니다.
+
+![지출결의서](expense-document.png)

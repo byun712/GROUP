@@ -1,0 +1,9 @@
+# Set GROUPWARE_DOMAIN to a DNS hostname pointing to this server.
+# Run Caddy on the SAME host as Node, with no additional upstream proxy.
+{$GROUPWARE_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Real-IP {http.request.remote.host}
+        header_up -X-Forwarded-For
+    }
+}

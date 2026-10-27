@@ -1,3 +1,4 @@
+import {reportTemplates} from './report-templates.js';
 // Template metadata is shared with the browser through an authenticated API.
 const field=(key,label,type='text',extra={})=>({key,label,type,required:true,...extra});
 export const approvalTemplates=[
@@ -17,11 +18,12 @@ export const approvalTemplates=[
 export function initializeApprovals(db){db.exec(`CREATE TABLE IF NOT EXISTS approval_requests(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),template_id TEXT NOT NULL,title TEXT NOT NULL,fields TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'manager',created TEXT NOT NULL,schema_version INTEGER NOT NULL DEFAULT 1);
 CREATE TABLE IF NOT EXISTS approval_decisions(id INTEGER PRIMARY KEY,request_id INTEGER NOT NULL REFERENCES approval_requests(id),actor INTEGER NOT NULL REFERENCES users(id),action TEXT NOT NULL,created TEXT NOT NULL);`);}
 const realDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
-export function validateDraft(body){
+export function validateDraft(body,templates=approvalTemplates){
  if(!body||typeof body!=='object'||Array.isArray(body))throw Error('기안 내용을 확인하세요');
- const template=approvalTemplates.find(t=>t.id===body.template_id&&t.storage==='draft');
+ const template=templates.find(t=>t.id===body.template_id&&t.storage==='draft');
  if(!template||typeof body.title!=='string'||!body.title.trim()||body.title.length>120||!body.fields||typeof body.fields!=='object'||Array.isArray(body.fields))throw Error('양식·제목·입력 항목을 확인하세요');
  const fields={};for(const f of template.fields){const v=body.fields[f.key];let valid;
+ if(!f.required&&(v===undefined||v==='')){fields[f.key]='';continue;}
  if(f.type==='money')valid=Number.isSafeInteger(v)&&v>=0&&v<=1000000000000;
  else if(f.type==='date')valid=realDate(v);
  else if(f.type==='time')valid=typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);
@@ -30,21 +32,23 @@ export function validateDraft(body){
  if(!valid)throw Error(f.label+' 입력을 확인하세요');fields[f.key]=typeof v==='string'?v.trim():v;
  }
  if(fields.start_date&&fields.start_date>fields.end_date)throw Error('종료일은 시작일 이후여야 합니다');
- if(template.id==='overtime'&&fields.start_time>=fields.end_time)throw Error('종료 시각은 시작 시각 이후여야 합니다');
+ if(['overtime','meeting_minutes'].includes(template.id)&&fields.start_time>=fields.end_time)throw Error('종료 시각은 시작 시각 이후여야 합니다');
  return {template_id:template.id,title:body.title.trim(),fields};
 }
 export function approvalApi(db,path,method,user,body,send){
+ const reporting=path==='/api/report-templates'||path.startsWith('/api/reports'),prefix=reporting?'/api/reports':'/api/approvals',templates=reporting?reportTemplates:approvalTemplates;const reportIds=reportTemplates.map(t=>t.id),kind=`template_id ${reporting?'IN':'NOT IN'} (${reportIds.map(()=>'?').join(',')})`;
+ if(path==='/api/report-templates'&&method==='GET')return send(200,reportTemplates);
  if(path==='/api/approval-templates'&&method==='GET')return send(200,approvalTemplates);
- if(path==='/api/approvals'&&method==='GET'){
-  const rows=user.role==='employee'?db.prepare('SELECT a.*,u.name FROM approval_requests a JOIN users u ON u.id=a.user_id WHERE a.user_id=? ORDER BY a.id DESC').all(user.id):db.prepare('SELECT a.*,u.name FROM approval_requests a JOIN users u ON u.id=a.user_id ORDER BY a.id DESC').all();
+ if(path===prefix&&method==='GET'){
+  const rows=db.prepare(`SELECT a.*,u.name FROM approval_requests a JOIN users u ON u.id=a.user_id WHERE ${kind}${user.role==='employee'?' AND a.user_id=?':''} ORDER BY a.id DESC`).all(...reportIds,...(user.role==='employee'?[user.id]:[]));
   for(const row of rows){row.fields=JSON.parse(row.fields);row.history=db.prepare('SELECT d.action,d.created,u.name FROM approval_decisions d JOIN users u ON u.id=d.actor WHERE request_id=? ORDER BY d.id').all(row.id);}return send(200,rows);
  }
- if(path==='/api/approvals'&&method==='POST'){
-  let draft;try{draft=validateDraft(body);}catch(error){return send(400,{error:error.message});}
+ if(path===prefix&&method==='POST'){
+  let draft;try{draft=validateDraft(body,templates);}catch(error){return send(400,{error:error.message});}
   const result=db.prepare('INSERT INTO approval_requests(user_id,template_id,title,fields,created) VALUES(?,?,?,?,?)').run(user.id,draft.template_id,draft.title,JSON.stringify(draft.fields),new Date().toISOString());return send(201,{id:Number(result.lastInsertRowid),ok:true});
  }
- if(/^\/api\/approvals\/\d+\/action$/.test(path)&&method==='POST'){
-  const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM approval_requests WHERE id=?').get(id);if(!row)return send(404,{error:'기안 문서가 없습니다'});
+ if(/^\/api\/(approvals|reports)\/\d+\/action$/.test(path)&&method==='POST'){
+  const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM approval_requests WHERE id=?').get(id);if(!row||reportIds.includes(row.template_id)!==reporting)return send(404,{error:'기안 문서가 없습니다'});
   let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
   db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE approval_requests SET status=? WHERE id=?').run(next,id);db.prepare('INSERT INTO approval_decisions(request_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }

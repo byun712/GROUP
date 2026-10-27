@@ -1,5 +1,0 @@
-import {createHmac,randomBytes,timingSafeEqual} from 'node:crypto';
-const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-export function newSecret(){const bytes=randomBytes(20);let bits='';for(const b of bytes)bits+=b.toString(2).padStart(8,'0');return bits.match(/.{5}/g).map(v=>alphabet[parseInt(v,2)]).join('');}
-export function totp(secret,step=Math.floor(Date.now()/30000)){let bits='';for(const c of secret)bits+=alphabet.indexOf(c).toString(2).padStart(5,'0');const key=Buffer.from(bits.match(/.{8}/g).map(v=>parseInt(v,2)));const counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(step));const digest=createHmac('sha1',key).update(counter).digest();const offset=digest[19]&15;return String((digest.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,'0');}
-export function verifyTotp(secret,code,last=-1){if(!/^\d{6}$/.test(String(code)))return null;const now=Math.floor(Date.now()/30000);for(const step of [now-1,now,now+1])if(step>last&&timingSafeEqual(Buffer.from(totp(secret,step)),Buffer.from(String(code))))return step;return null;}

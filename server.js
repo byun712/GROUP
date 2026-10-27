@@ -54,7 +54,7 @@ const user=db.prepare('SELECT u.id,u.login,u.name,u.role,u.is_admin FROM session
 if(path==='/api/customers'||path.startsWith('/api/customers/')||path.startsWith('/api/contacts/'))return crmApi(db,path,req.method,user,body,send,res);
 if(path==='/api/projects'||path.startsWith('/api/projects/')||path.startsWith('/api/project-tasks/')||path==='/api/people')return projectApi(db,path,req.method,user,body,send);
 if(path==='/api/accounting'||path.startsWith('/api/accounting/'))return accountingApi(db,path,req.method,user,body,send);
-if(path==='/api/users'||path.startsWith('/api/users/'))return accountApi(db,path,req.method,user,body,send,addUser);
+if(path==='/api/user-options'||path==='/api/users'||path.startsWith('/api/users/'))return accountApi(db,path,req.method,user,body,send,addUser);
 if(path==='/api/approval-settings'&&req.method==='GET'){
  if(!['manager','ceo'].includes(user.role))return send(403,{error:'결재자만 운영 정보를 조회할 수 있습니다'});
  const counts={};for(const [key,table] of [['leave','leave_requests'],['expense','expense_requests'],['draft','approval_requests']])counts[key]=db.prepare(`SELECT status,count(*) count FROM ${table} GROUP BY status`).all();

@@ -32,6 +32,7 @@ function renderOrganization(){const folders=$('#mail-org-folders'),rules=$('#mai
 }
 async function savePageSize(size){if(!accountId)return;const id=orgAccount();await api('mail/preferences',{account_id:id,page_size:size});if(id!==orgAccount())return;pageSize=size;organization.page_size=size;page=1;$('#mail-page-size').value=String(size);if($('#mail-settings-page-size'))$('#mail-settings-page-size').value=String(size);await loadMessages();}
 $('#mail-page-size').onchange=e=>run(()=>savePageSize(Number(e.target.value)));
+$('#mail-folder-create').onclick=()=>{if(!selected())return status('먼저 본인의 메일 계정을 추가하세요.');folderForm();};
 $('#mail-organization').onclick=()=>{if(!selected())return status('먼저 메일 계정을 추가하세요.');$('#mail-org-status').textContent='';renderOrganization();$('#mail-organization-dialog').showModal();};
 for(const name of ['folders','rules','display'])$('#mail-org-tab-'+name).onclick=()=>{for(const key of ['folders','rules','display']){$('#mail-org-tab-'+key).setAttribute('aria-selected',String(name===key));$('#mail-org-'+key).hidden=name!==key;}};
 document.addEventListener('workspace-page',e=>{if(e.detail==='mail')run(loadAccounts);});

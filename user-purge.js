@@ -2,6 +2,8 @@
 export function purgeUser(db,id){
  db.exec('PRAGMA secure_delete=ON; BEGIN IMMEDIATE');
  try{
+  db.prepare('DELETE FROM decision_signatures WHERE actor=?').run(id);db.prepare('DELETE FROM user_seals WHERE user_id=?').run(id);
+  for(const [source,history,key,parent] of [['leaves','decisions','leave_id','leave_requests'],['expenses','expense_decisions','expense_id','expense_requests'],['approvals','approval_decisions','request_id','approval_requests']])db.prepare(`DELETE FROM decision_signatures WHERE source=? AND decision_id IN (SELECT d.id FROM ${history} d JOIN ${parent} p ON p.id=d.${key} WHERE p.user_id=?)`).run(source,id);
   db.prepare("INSERT OR IGNORE INTO ledger_exclusions(source_type,source_id) SELECT source_type,source_id FROM journal_entries WHERE posted_by=? AND source_type='expense_approval' AND source_id NOT IN (SELECT id FROM expense_requests WHERE user_id=?)").run(id,id);
   db.prepare("DELETE FROM journal_lines WHERE entry_id IN (SELECT id FROM journal_entries WHERE posted_by=? OR (source_type IN ('expense_approval','expense_payment') AND source_id IN (SELECT id FROM expense_requests WHERE user_id=?)))").run(id,id);
   db.prepare("DELETE FROM journal_entries WHERE posted_by=? OR (source_type IN ('expense_approval','expense_payment') AND source_id IN (SELECT id FROM expense_requests WHERE user_id=?))").run(id,id);

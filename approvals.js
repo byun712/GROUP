@@ -1,3 +1,4 @@
+import {captureSignature,decisionHistory} from './signatures.js';
 import {canDeleteDocument,nextDocumentId} from './document-deletion.js';
 import {reportTemplates} from './report-templates.js';
 // Template metadata is shared with the browser through an authenticated API.
@@ -42,7 +43,7 @@ export function approvalApi(db,path,method,user,body,send){
  if(path==='/api/approval-templates'&&method==='GET')return send(200,approvalTemplates);
  if(path===prefix&&method==='GET'){
   const rows=db.prepare(`SELECT a.*,u.name FROM approval_requests a JOIN users u ON u.id=a.user_id WHERE ${kind}${user.role==='employee'&&!user.is_admin?' AND a.user_id=?':''} ORDER BY a.id DESC`).all(...reportIds,...(user.role==='employee'&&!user.is_admin?[user.id]:[]));
-  for(const row of rows){row.can_delete=canDeleteDocument(db,reporting?'reports':'approvals',row,user);row.fields=JSON.parse(row.fields);row.history=db.prepare('SELECT d.action,d.created,u.name FROM approval_decisions d JOIN users u ON u.id=d.actor WHERE request_id=? ORDER BY d.id').all(row.id);}return send(200,rows);
+  for(const row of rows){row.can_delete=canDeleteDocument(db,reporting?'reports':'approvals',row,user);row.fields=JSON.parse(row.fields);row.history=decisionHistory(db,reporting?'reports':'approvals',row.id);}return send(200,rows);
  }
  if(path===prefix&&method==='POST'){
   let draft;try{draft=validateDraft(body,templates);}catch(error){return send(400,{error:error.message});}
@@ -51,7 +52,7 @@ export function approvalApi(db,path,method,user,body,send){
  if(/^\/api\/(approvals|reports)\/\d+\/action$/.test(path)&&method==='POST'){
   const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM approval_requests WHERE id=?').get(id);if(!row||reportIds.includes(row.template_id)!==reporting)return send(404,{error:'기안 문서가 없습니다'});
   let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
-  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE approval_requests SET status=?,ceo_processed=max(ceo_processed,?) WHERE id=?').run(next,Number(user.role==='ceo'&&body.action!=='withdraw'),id);db.prepare('INSERT INTO approval_decisions(request_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
+  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE approval_requests SET status=?,ceo_processed=max(ceo_processed,?) WHERE id=?').run(next,Number(user.role==='ceo'&&body.action!=='withdraw'),id);const created=new Date().toISOString(),decision=db.prepare('INSERT INTO approval_decisions(request_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,created);captureSignature(db,'approvals',decision.lastInsertRowid,user,created);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});
 }

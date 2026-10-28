@@ -14,8 +14,9 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
-if not exist "node_modules\nodemailer\package.json" (
- echo Installing required mail packages...
+node --input-type=module -e "await Promise.all(['nodemailer','mailparser','exceljs','image-size'].map(name=>import(name)))" >nul 2>nul
+if errorlevel 1 (
+ echo Installing required groupware packages...
  call npm.cmd ci --cache "%TEMP%\elsoltec-npm-cache"
  if errorlevel 1 (
   echo Package installation failed. Check your internet connection.

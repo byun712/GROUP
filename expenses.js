@@ -1,3 +1,4 @@
+import {captureSignature,decisionHistory} from './signatures.js';
 import {canDeleteDocument,nextDocumentId} from './document-deletion.js';
 import {postApprovedExpense} from './accounting.js';
 const categories=['식비','교통비','소모품비','통신비','교육비','기타'];
@@ -23,7 +24,7 @@ export function validateExpense(body){
 export function expenseApi(db,path,method,user,body,send){
  if(path==='/api/expenses'&&method==='GET'){
   const rows=user.role==='employee'&&!user.is_admin?db.prepare('SELECT e.*,u.name FROM expense_requests e JOIN users u ON u.id=e.user_id WHERE e.user_id=? ORDER BY e.id DESC').all(user.id):db.prepare('SELECT e.*,u.name FROM expense_requests e JOIN users u ON u.id=e.user_id ORDER BY e.id DESC').all();
-  for(const row of rows){row.can_delete=canDeleteDocument(db,'expenses',row,user);row.items=JSON.parse(row.items);row.history=db.prepare('SELECT d.action,d.created,u.name,u.role FROM expense_decisions d JOIN users u ON u.id=d.actor WHERE expense_id=? ORDER BY d.id').all(row.id);}return send(200,rows);
+  for(const row of rows){row.can_delete=canDeleteDocument(db,'expenses',row,user);row.items=JSON.parse(row.items);row.history=decisionHistory(db,'expenses',row.id);}return send(200,rows);
  }
  if(path==='/api/expenses'&&method==='POST'){
   let e;try{e=validateExpense(body);}catch(error){return send(400,{error:error.message});}
@@ -32,7 +33,7 @@ export function expenseApi(db,path,method,user,body,send){
  if(/^\/api\/expenses\/\d+\/action$/.test(path)&&method==='POST'){
   const id=Number(path.split('/')[3]),row=db.prepare('SELECT * FROM expense_requests WHERE id=?').get(id);if(!row)return send(404,{error:'지출결의서가 없습니다'});
   let next;if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});
-  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE expense_requests SET status=?,ceo_processed=max(ceo_processed,?) WHERE id=?').run(next,Number(user.role==='ceo'&&body.action!=='withdraw'),id);db.prepare('INSERT INTO expense_decisions(expense_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,new Date().toISOString());if(next==='approved')postApprovedExpense(db,row,user.id);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
+  db.exec('BEGIN IMMEDIATE');try{db.prepare('UPDATE expense_requests SET status=?,ceo_processed=max(ceo_processed,?) WHERE id=?').run(next,Number(user.role==='ceo'&&body.action!=='withdraw'),id);const created=new Date().toISOString(),decision=db.prepare('INSERT INTO expense_decisions(expense_id,actor,action,created) VALUES(?,?,?,?)').run(id,user.id,body.action,created);captureSignature(db,'expenses',decision.lastInsertRowid,user,created);if(next==='approved')postApprovedExpense(db,row,user.id);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return send(200,{ok:true});
  }
  return send(404,{error:'찾을 수 없습니다'});
 }

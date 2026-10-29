@@ -7,7 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {initializeProjects} from '../projects.js';
 test('daily completion is independent, cumulative, versioned, and recalculated on schedule changes without work-log noise',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'group-daily-'));process.env.DATA_DIR=dir;
- const {server,addUser}=await import('../server.js');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ const {server,addUser}=await import('../test-support/server.js');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
  async function call(path,cookie,body){const r=await fetch(base+'/api/'+path,{method:body?'POST':'GET',headers:{cookie:cookie||'','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return {status:r.status,data:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};}
  try{
  addUser('owner','등록자','employee','daily-test-123');addUser('other','협업자','employee','daily-test-123');

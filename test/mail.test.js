@@ -9,7 +9,7 @@ import {simpleParser} from 'mailparser';
 import {snapshot,restore} from '../scripts/database.js';
 import {initializeMail} from '../mail.js';
 const dir=mkdtempSync(join(tmpdir(),'group-mail-'));process.env.DATA_DIR=dir;process.env.NODE_ENV='development';delete process.env.PUBLIC_ORIGIN;
-const {server,addUser}=await import('../server.js');addUser('mailone','메일 사용자','employee','mail-test-password');addUser('mailtwo','다른 사용자','employee','mail-test-password');
+const {server,addUser}=await import('../test-support/server.js');addUser('mailone','메일 사용자','employee','mail-test-password');addUser('mailtwo','다른 사용자','employee','mail-test-password');
 const raw='From: Sender <sender@example.com>\r\nTo: mailbox@example.com\r\nSubject: incoming attachment\r\nDate: Tue, 27 Oct 2026 10:00:00 +0000\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="test"\r\n\r\n--test\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello <script>alert(1)</script>\r\n--test\r\nContent-Type: text/plain\r\nContent-Disposition: attachment; filename="sample.txt"\r\nContent-Transfer-Encoding: base64\r\n\r\naW5jb21pbmc=\r\n--test--\r\n';
 let deleted=false,delivered='',mailCount=1;
 const pop=net.createServer(s=>{s.write('+OK test\r\n');let buf='';s.on('data',chunk=>{buf+=chunk;while(buf.includes('\r\n')){const n=buf.indexOf('\r\n'),line=buf.slice(0,n);buf=buf.slice(n+2);if(line==='UIDL')s.write('+OK\r\n1 unique-message\r\n'+(mailCount===2?'2 second-message\r\n':'')+'.\r\n');else if(line==='RETR 1'||line==='RETR 2')s.write('+OK\r\n'+raw+'.\r\n');else if(line.startsWith('DELE')){deleted=true;s.write('+OK\r\n');}else if(line==='QUIT'){s.end('+OK\r\n');}else s.write('+OK\r\n');}});});

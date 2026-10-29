@@ -8,6 +8,8 @@ export function purgeUser(db,id){
   db.prepare("DELETE FROM journal_lines WHERE entry_id IN (SELECT id FROM journal_entries WHERE posted_by=? OR (source_type IN ('expense_approval','expense_payment') AND source_id IN (SELECT id FROM expense_requests WHERE user_id=?)))").run(id,id);
   db.prepare("DELETE FROM journal_entries WHERE posted_by=? OR (source_type IN ('expense_approval','expense_payment') AND source_id IN (SELECT id FROM expense_requests WHERE user_id=?))").run(id,id);
   db.prepare('DELETE FROM ledger_exclusions WHERE source_id IN (SELECT id FROM expense_requests WHERE user_id=?)').run(id);
+  db.prepare('DELETE FROM leave_charges WHERE leave_id IN (SELECT id FROM leave_requests WHERE user_id=?)').run(id);
+  db.prepare('DELETE FROM leave_grant_history WHERE actor=? OR user_id=?').run(id,id);db.prepare('DELETE FROM leave_quotas WHERE user_id=?').run(id);db.prepare('DELETE FROM leave_profiles WHERE user_id=?').run(id);
   for(const [child,parent,key] of [['decisions','leave_requests','leave_id'],['expense_decisions','expense_requests','expense_id'],['approval_decisions','approval_requests','request_id']]){db.prepare(`DELETE FROM ${child} WHERE actor=? OR ${key} IN (SELECT id FROM ${parent} WHERE user_id=?)`).run(id,id);db.prepare(`DELETE FROM ${parent} WHERE user_id=?`).run(id);}
   db.prepare("DELETE FROM schedule_changes WHERE EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(snapshot) THEN json_extract(snapshot,'$.participant_ids') ELSE '[]' END) WHERE value=?)").run(id);
   db.prepare('DELETE FROM schedule_changes WHERE actor=? OR event_id IN (SELECT id FROM schedule_events WHERE user_id=? UNION SELECT event_id FROM schedule_participants WHERE user_id=?)').run(id,id,id);

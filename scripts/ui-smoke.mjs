@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const dir=mkdtempSync(join(tmpdir(),'group-ui-'));
 process.env.DATA_DIR=dir;process.env.OFFICE_IP='127.0.0.1';process.env.NODE_ENV='development';process.env.TRUSTED_PROXY_IPS='';delete process.env.PUBLIC_ORIGIN;
-const {server,addUser}=await import('../server.js');
+const {server,addUser}=await import('../test-support/server.js');
 for(const [login,role,name] of [['staff','employee','테스트 직원'],['manager','manager','테스트 이사'],['ceo','ceo','테스트 대표'],['soltec@elsoltec.com','employee','테스트 Admin']])addUser(login,name,role,'browser-test-123');
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const base=`http://127.0.0.1:${server.address().port}`;

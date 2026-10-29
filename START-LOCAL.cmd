@@ -14,7 +14,7 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
-node --input-type=module -e "await Promise.all(['nodemailer','mailparser','exceljs','image-size'].map(name=>import(name)))" >nul 2>nul
+node --input-type=module -e "await Promise.all(['nodemailer','mailparser','exceljs','image-size','date-holidays'].map(name=>import(name)))" >nul 2>nul
 if errorlevel 1 (
  echo Installing required groupware packages...
  call npm.cmd ci --cache "%TEMP%\elsoltec-npm-cache"

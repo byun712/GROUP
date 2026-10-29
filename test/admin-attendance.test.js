@@ -8,7 +8,7 @@ import {initializeAttendance,nextAttendanceId} from '../attendance.js';
 import {snapshot,restore} from '../scripts/database.js';
 test('Admin-only task hard deletion and personal attendance calendar/edit/delete; leave registration follows director approval',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'group-admin-attendance-'));process.env.DATA_DIR=join(dir,'live');process.env.OFFICE_IP='220.120.152.40';process.env.TRUSTED_PROXY_IPS='';
- const {server,addUser}=await import('../server.js');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ const {server,addUser}=await import('../test-support/server.js');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
  const db=new DatabaseSync(join(dir,'live','group.db'));db.exec('PRAGMA foreign_keys=ON');
  async function call(path,cookie,body){const r=await fetch(base+'/api/'+path,{method:body?'POST':'GET',headers:{cookie:cookie||'','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});const type=r.headers.get('content-type');return {status:r.status,data:type?.includes('json')?await r.json():await r.text(),cookie:r.headers.get('set-cookie')?.split(';')[0]};}
  try{

@@ -33,3 +33,9 @@ PowerShell 직접 실행: npm.cmd ci 후 npm.cmd start
 자세한 설정: docs/MAIL-UPDATE.md
 
 전체 소스·테스트·배포 설정: README.md 참조
+
+휴가 관리 업데이트
+Admin 로그인 → 사용자 관리 → 휴가 관리에서 사용자별 실제 부여 일수를 먼저 저장하세요.
+기본 부여량은 0일이며 기존 승인 휴가는 자동 집계됩니다.
+토·일·공휴일·회사 휴일을 제외하고 차감하며 잔여량이 부족하면 상신할 수 없습니다.
+자세한 사용법: docs/LEAVE-ALLOWANCES.md

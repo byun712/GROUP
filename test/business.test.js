@@ -1,6 +1,6 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {DatabaseSync} from 'node:sqlite';import {initializeAccounts} from '../accounts.js';import {initializeAccounting} from '../accounting.js';import {snapshot,restore} from '../scripts/database.js';
 test('Admin 최초 지정·위임 보호, 고객사 명함, 주간 공정, 실장 본인 승인 및 지출 회계 연동',async()=>{
- const dir=mkdtempSync(join(tmpdir(),'group-business-'));process.env.DATA_DIR=join(dir,'live');const {server,addUser,manageUser}=await import('../server.js');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`,password='business-test-123';
+ const dir=mkdtempSync(join(tmpdir(),'group-business-'));process.env.DATA_DIR=join(dir,'live');const {server,addUser,manageUser}=await import('../test-support/server.js');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`,password='business-test-123';
  async function call(path,cookie,body){const r=await fetch(base+'/api/'+path,{method:body?'POST':'GET',headers:{cookie:cookie||'','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return {status:r.status,data:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};}const login=async name=>(await call('login','',{login:name,password})).cookie;
  let db;
  try{

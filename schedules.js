@@ -25,7 +25,7 @@ export function scheduleApi(db,path,method,user,body,send,url){
   const month=url.searchParams.get('month');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||'')||Number(month.slice(0,4))<1000)return send(400,{error:'조회 월을 확인하세요'});
   const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10),start=month+'-01';
   const events=db.prepare("SELECT e.*,u.name,p.title project_title FROM schedule_events e JOIN users u ON u.id=e.user_id LEFT JOIN projects p ON p.id=e.project_id WHERE e.deleted=0 AND (e.visibility='company' OR e.user_id=? OR (e.visibility='participants' AND EXISTS(SELECT 1 FROM schedule_participants p WHERE p.event_id=e.id AND p.user_id=?))) AND e.start_date<=? AND e.end_date>=? ORDER BY e.start_date,e.start_time,e.id").all(user.id,user.id,end,start).map(row=>({...row,all_day:!!row.all_day,can_edit:true,can_delete:row.user_id===user.id,can_manage_sharing:row.user_id===user.id||!!user.is_admin,participants:db.prepare('SELECT u.id,u.name,u.job_title,u.organization,u.email,u.active FROM schedule_participants p JOIN users u ON u.id=p.user_id WHERE p.event_id=? ORDER BY u.name,u.id').all(row.id)}));
-  const leaves=db.prepare("SELECT l.id,l.kind,l.start,l.end,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE l.status='approved' AND l.start<=? AND l.end>=? ORDER BY l.start,l.id").all(end,start);
+  const leaves=db.prepare("SELECT l.id,l.kind,l.start,l.end,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE l.status IN ('ceo','approved') AND l.start<=? AND l.end>=? ORDER BY l.start,l.id").all(end,start);
   return send(200,{events,leaves});
  }
  if(path==='/api/schedules'&&method==='POST'){

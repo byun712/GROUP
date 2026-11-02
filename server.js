@@ -1,8 +1,10 @@
-import {initializeLeaveManagement,leaveManagementApi,reserveLeave,assertLeaveApproval,LEAVE_KINDS,LeaveBalanceError} from './leave-management.js';
+import {initializeDocumentWorkflow,documentPermissions} from './document-state.js';
+import {documentWorkflowApi} from './document-workflow.js';
+import {initializeLeaveManagement,leaveManagementApi,reserveLeave,LEAVE_KINDS,LeaveBalanceError} from './leave-management.js';
 import {InputError} from './business-common.js';
 import {initializeAttendance,nextAttendanceId,attendanceApi} from './attendance.js';
 import {formExcelApi} from './form-excel.js';
-import {initializeSignatures,captureSignature,decisionHistory,signatureApi} from './signatures.js';
+import {initializeSignatures,decisionHistory,signatureApi} from './signatures.js';
 import {deleteDocumentApi,canDeleteDocument,canRejectAfterApproval,initializeDocumentDeletion,nextDocumentId} from './document-deletion.js';
 import {reportTemplates} from './report-templates.js';
 import {initializeMail,mailApi} from './mail.js';
@@ -43,6 +45,7 @@ initializeCrm(db);
 initializeProjects(db);
 initializeAccounting(db);
 initializeDocumentDeletion(db);
+initializeDocumentWorkflow(db);
 initializeLeaveManagement(db);
 initializeSignatures(db);
 const mailState=initializeMail(db,dir);
@@ -66,6 +69,7 @@ if(path==='/api/login'&&req.method==='POST'){const ip=ipOf(req),now=Date.now();l
 const user=db.prepare('SELECT u.id,u.login,u.name,u.role,u.is_admin FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires>? AND u.active=1').get(cookie(req),Date.now());if(!user)return send(401,{error:'로그인이 필요합니다'});
 if(path==='/api/forms/export'||/^\/api\/(leaves|expenses|approvals|reports)\/\d+\/excel$/.test(path))return await formExcelApi(db,path,req.method,user,body,send,res);
 if(path==='/api/seal'||path.startsWith('/api/seal/')||/^\/api\/(leaves|expenses|approvals|reports)\/\d+\/signatures\/\d+$/.test(path))return signatureApi(db,path,req.method,user,body,send,res);
+if(documentWorkflowApi(db,path,req.method,user,body,send))return;
 if(req.method==='POST'&&deleteDocumentApi(db,path,user,body,send))return;
 if(path.startsWith('/api/mail/'))return await mailApi(db,mailState,path,req.method,user,body,send,res,new URL(req.url,'http://localhost'));
 if(path==='/api/customers'||path.startsWith('/api/customers/')||path.startsWith('/api/contacts/'))return crmApi(db,path,req.method,user,body,send,res);
@@ -107,9 +111,8 @@ if(path==='/api/calendar'&&req.method==='GET'){
  const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10);
  return send(200,db.prepare("SELECT l.id,l.kind,l.start,l.end,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE l.status IN ('ceo','approved') AND l.start<=? AND l.end>=? ORDER BY l.start,l.id").all(end,month+'-01'));
 }
-if(path==='/api/leaves'&&req.method==='GET'){const rows=user.role==='employee'&&!user.is_admin?db.prepare('SELECT l.*,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE user_id=? ORDER BY l.id DESC').all(user.id):db.prepare('SELECT l.*,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id ORDER BY l.id DESC').all();for(const row of rows)row.history=decisionHistory(db,'leaves',row.id);for(const row of rows){row.can_delete=canDeleteDocument(db,'leaves',row,user);row.can_reject_after_approval=canRejectAfterApproval(db,'leaves',row,user);}return send(200,rows);}
+if(path==='/api/leaves'&&req.method==='GET'){const rows=user.role==='employee'&&!user.is_admin?db.prepare('SELECT l.*,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id WHERE user_id=? ORDER BY l.id DESC').all(user.id):db.prepare('SELECT l.*,u.name FROM leave_requests l JOIN users u ON u.id=l.user_id ORDER BY l.id DESC').all();for(const row of rows)row.history=decisionHistory(db,'leaves',row.id);for(const row of rows){Object.assign(row,documentPermissions(db,'leaves',row,user));row.can_delete=canDeleteDocument(db,'leaves',row,user);row.can_reject_after_approval=canRejectAfterApproval(db,'leaves',row,user);}return send(200,rows);}
 if(path==='/api/leaves'&&req.method==='POST'){const {kind,start,end,reason}=body;const valid=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;if(!LEAVE_KINDS.includes(kind)||!valid(start)||!valid(end)||start>end||(['오전 반차','오후 반차'].includes(kind)&&start!==end)||typeof reason!=='string'||!reason.trim()||reason.length>2000)return send(400,{error:'휴가 종류·기간·사유를 확인하세요'});db.exec('BEGIN IMMEDIATE');let id;try{id=nextDocumentId(db,'leaves');db.prepare('INSERT INTO leave_requests(id,user_id,kind,start,end,reason,created) VALUES(?,?,?,?,?,?,?)').run(id,user.id,kind,start,end,reason.trim(),new Date().toISOString());reserveLeave(db,id,user.id,kind,start,end);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}return send(201,{ok:true,id});}
-if(/^\/api\/leaves\/\d+\/action$/.test(path)&&req.method==='POST'){const id=Number(path.split('/')[3]);const row=db.prepare('SELECT * FROM leave_requests WHERE id=?').get(id);if(!row)return send(404,{error:'문서가 없습니다'});let next;if(body.action==='reject'&&canRejectAfterApproval(db,'leaves',row,user))next='rejected';else if(body.action==='withdraw'&&row.user_id===user.id&&row.status==='manager')next='withdrawn';else if(row.status===user.role&&['approve','reject'].includes(body.action))next=body.action==='reject'?'rejected':user.role==='manager'?'ceo':'approved';else return send(403,{error:'현재 단계에서 처리할 권한이 없습니다'});db.exec('BEGIN IMMEDIATE');try{if(body.action==='approve')assertLeaveApproval(db,row);db.prepare('UPDATE leave_requests SET status=?,ceo_processed=max(ceo_processed,?) WHERE id=?').run(next,Number(user.role==='ceo'&&body.action!=='withdraw'),id);const created=new Date().toISOString(),decision=db.prepare('INSERT INTO decisions(leave_id,actor,action,created,decision_stage) VALUES(?,?,?,?,?)').run(id,user.id,body.action,created,body.action==='withdraw'?'author':user.role);captureSignature(db,'leaves',decision.lastInsertRowid,user,created);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}return send(200,{ok:true});}
 if(path==='/api/attendance'&&req.method==='GET')return send(200,db.prepare('SELECT * FROM attendance WHERE user_id=? ORDER BY day DESC LIMIT 90').all(user.id));
 if(path==='/api/attendance'&&req.method==='POST'){if(ipOf(req)!==office)return send(403,{error:'사무실 네트워크에서만 출퇴근 등록이 가능합니다'});const today=day(),row=db.prepare('SELECT * FROM attendance WHERE user_id=? AND day=?').get(user.id,today);if(body.action==='in'&&!row)db.prepare('INSERT INTO attendance(id,user_id,day,clock_in,ip) VALUES(?,?,?,?,?)').run(nextAttendanceId(db),user.id,today,new Date().toISOString(),ipOf(req));else if(body.action==='out'&&row&&!row.clock_out)db.prepare('UPDATE attendance SET clock_out=?,version=version+1 WHERE id=?').run(new Date().toISOString(),row.id);else return send(409,{error:'출퇴근 등록 순서 또는 중복 여부를 확인하세요'});return send(200,{ok:true});}
 return send(404,{error:'찾을 수 없습니다'});

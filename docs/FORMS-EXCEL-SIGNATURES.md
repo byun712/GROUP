@@ -1,5 +1,7 @@
 # 기안 메뉴 · 자동 확장 양식 · 엑셀 · 결재 서명
 
+
+> 추가 변경: [프로젝트·공정 참여자와 이사 승인 후 반려](PROJECT-PARTICIPANTS-REJECTION.md)를 확인하세요.
 ## 실행/업데이트
 
 서버를 종료하고 새 폴더에 전체 ZIP을 풀어 기존 `data` 폴더 전체를 복사합니다. `START-LOCAL.cmd`는 Node.js 24 이상에서 필요한 패키지(Nodemailer, Mailparser, ExcelJS, image-size)를 확인하고 누락되면 `npm ci`로 설치합니다. 첫 설치에는 인터넷 연결이 필요합니다. PowerShell에서 직접 실행한다면 **`npm.cmd ci` 후 `npm.cmd start`** 순서로 실행하세요. 서버 시작 후 Edge에서 Ctrl+F5로 새로고침합니다.

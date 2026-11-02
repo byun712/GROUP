@@ -1,0 +1,6 @@
+import {check} from './business-common.js';
+const tables={project:['project_members','project_id'],task:['project_task_members','task_id']};
+export function members(db,type,id){const [table,key]=tables[type];return db.prepare(`SELECT u.id,u.name,u.job_title,u.organization,u.active FROM ${table} m JOIN users u ON u.id=m.user_id WHERE m.${key}=? ORDER BY u.name,u.id`).all(id);}
+export function memberIds(db,type,id){return members(db,type,id).map(u=>u.id);}
+export function validateMembers(db,value,existing,leader){const ids=value===undefined?existing.filter(id=>id!==leader):value;check(Array.isArray(ids)&&ids.length<=200&&ids.every(id=>Number.isSafeInteger(id)&&id>0)&&new Set(ids).size===ids.length,'참여자를 중복 없이 선택하세요');check(!ids.includes(leader),'담당자는 참여자로 중복 선택하지 마세요');for(const id of ids)check(!!db.prepare('SELECT id FROM users WHERE id=? AND (active=1 OR ?=1)').get(id,Number(existing.includes(id))),'등록된 활성 사용자를 참여자로 선택하세요');return [...ids].sort((a,b)=>a-b);}
+export function saveMembers(db,type,id,ids){const [table,key]=tables[type];db.prepare(`DELETE FROM ${table} WHERE ${key}=?`).run(id);for(const userId of ids)db.prepare(`INSERT INTO ${table}(${key},user_id) VALUES(?,?)`).run(id,userId);}

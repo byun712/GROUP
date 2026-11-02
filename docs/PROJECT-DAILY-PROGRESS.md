@@ -1,6 +1,8 @@
 # 날짜별 공정 관리
 
 
+> 추가 변경: [프로젝트·공정 참여자와 이사 승인 후 반려](PROJECT-PARTICIPANTS-REJECTION.md)를 확인하세요.
+
 > 추가 변경: [Admin 공정 삭제·사용자별 근태 달력·이사 승인 휴가 연동](ADMIN-ATTENDANCE.md)을 확인하세요.
 ## 완료 체크와 공정률
 

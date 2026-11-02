@@ -16,6 +16,10 @@ export function purgeUser(db,id){
   db.prepare('DELETE FROM schedule_participants WHERE user_id=? OR event_id IN (SELECT id FROM schedule_events WHERE user_id=?)').run(id,id);
   db.prepare('DELETE FROM schedule_events WHERE user_id=?').run(id);
   db.prepare('UPDATE schedule_events SET project_id=NULL WHERE project_id IN (SELECT id FROM projects WHERE owner_id=?)').run(id);
+  db.prepare('DELETE FROM project_task_members WHERE user_id=? OR task_id IN (SELECT id FROM project_tasks WHERE assignee_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?))').run(id,id,id);
+  db.prepare('DELETE FROM project_members WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?)').run(id,id);
+  db.prepare('UPDATE projects SET manager_id=owner_id WHERE manager_id=?').run(id);
+  db.prepare("DELETE FROM project_changes WHERE json_valid(snapshot) AND (json_extract(snapshot,'$.before.manager_id')=? OR json_extract(snapshot,'$.after.manager_id')=? OR EXISTS(SELECT 1 FROM json_each(json_extract(snapshot,'$.before.participant_ids')) WHERE value=?) OR EXISTS(SELECT 1 FROM json_each(json_extract(snapshot,'$.after.participant_ids')) WHERE value=?))").run(id,id,id,id);
   db.prepare('DELETE FROM project_updates WHERE actor=? OR task_id IN (SELECT id FROM project_tasks WHERE assignee_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?))').run(id,id,id);
   db.prepare('DELETE FROM project_tasks WHERE assignee_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?)').run(id,id);
   db.prepare('DELETE FROM project_changes WHERE actor=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?)').run(id,id);

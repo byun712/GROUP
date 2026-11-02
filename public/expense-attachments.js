@@ -25,6 +25,18 @@ $('#expense-files').addEventListener('change',event=>{
 });
 const expenseBase64=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=()=>reject(Error('첨부파일을 읽을 수 없습니다'));reader.readAsDataURL(file);});
 async function expenseAttachmentPayload(){return Promise.all(expenseAttachments.map(async f=>f.id?{id:f.id}:{filename:f.filename,base64:await expenseBase64(f.file)}));}
+async function copyExpenseAttachments(files){
+ const copies=[];
+ for(const source of files){
+  const response=await fetch(source.url);
+  if(!response.ok)throw Error('첨부파일을 복사하지 못했습니다. 문서를 다시 조회한 후 복사하세요.');
+  const blob=await response.blob();
+  if(blob.size!==source.size)throw Error('첨부파일을 모두 불러오지 못했습니다. 다시 복사하세요.');
+  const file=new File([blob],source.filename,{type:source.content_type});
+  copies.push({filename:file.name,size:file.size,content_type:file.type,file});
+ }
+ return copies;
+}
 function appendExpenseAttachments(container,files=[]){
  const section=text('section','','expense-evidence');section.append(text('h3','증빙 첨부파일'));
  if(!files.length)section.append(text('small','첨부파일이 없습니다.'));

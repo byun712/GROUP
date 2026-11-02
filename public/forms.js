@@ -18,21 +18,24 @@ document.addEventListener('workspace-page',e=>{if(e.detail==='sealSettings')run(
 function appendDirectorRejection(container,source,row){if(!row.can_reject_after_approval)return;const button=text('button','승인 후 반려','danger');button.type='button';button.onclick=()=>bmodal('이사 승인 후 반려',form=>{form.append(text('p','내가 승인한 문서를 반려로 변경합니다. 현재 상신 회차에서 대표이사가 처리하기 전까지만 가능합니다.'));bfield(form,'confirm','승인 후 반려 확인',{type:'checkbox',required:true});},()=>api(`${source}/${row.id}/action`,{action:'reject',expected_version:row.version}),async()=>{await refresh();showWorkflowDocument(source,row.id);notice('이사 승인을 반려로 변경했습니다.');});container.append(button);}
 
 const documentEdits={};
+const documentCopies={};
 const workflowForms={leaves:'leave',expenses:'expense',approvals:'draft',reports:'report'};
 function showWorkflowDocument(source,id){({leaves:showDocument,expenses:showExpense,approvals:showDraft,reports:showReport})[source](id);}
 function workflowSubmit(source){return $('#'+workflowForms[source]+'-form').querySelector('button:not([type=button])');}
 function clearDocumentEdit(source,reset=false){
  delete documentEdits[source];
+ delete documentCopies[source];
  const form=$('#'+workflowForms[source]+'-form');
  form.querySelector('.document-edit-notice')?.remove();
+ form.querySelector('.document-copy-notice')?.remove();
  const button=workflowSubmit(source);button.textContent=source==='expenses'?'지출결의서 상신':'결재 상신';button.disabled=false;
  if(reset){form.reset();if(source==='expenses'){$('#expense-form-type').querySelector('[value=research_expense]')?.remove();updateResearchFields();$('#expense-lines').replaceChildren();addExpenseLine();form.elements.expense_date.value=today();}}
 }
-function editWorkflowDocument(source,row){
+function fillWorkflowForm(source,row){
  $('#document-dialog').close();
  if(source==='reports')selectReportTemplate(row.template_id);
  else selectTemplate(source==='leaves'?'leave':source==='expenses'?'expense':row.template_id);
- const form=$('#'+workflowForms[source]+'-form');documentEdits[source]={...row};
+ const form=$('#'+workflowForms[source]+'-form');
  if(source==='expenses'&&row.form_type==='research_expense'){$('#expense-form-type').append(new Option('지출결의서(연구개발비·기존)','research_expense'));}
  const values=['approvals','reports'].includes(source)?{title:row.title,...row.fields}:row;
  for(const [key,value] of Object.entries(values)){const input=form.elements.namedItem(key);if(input instanceof HTMLElement&&'value' in input)input.value=value??'';}
@@ -40,16 +43,39 @@ function editWorkflowDocument(source,row){
   updateResearchFields();$('#expense-lines').replaceChildren();
   for(const item of row.items){addExpenseLine();const line=$('#expense-lines').lastElementChild;for(const input of line.querySelectorAll('[data-field]'))input.value=item[input.dataset.field]??'';}updateExpenseTotal();setExpenseAttachments(row.attachments||[]);
  }
- const banner=text('div','','document-edit-notice');banner.setAttribute('role','status');banner.append(text('strong',`기존 문서 수정 · ${row.approval_round}차 · ${statuses[row.status]}`),text('p',row.status==='manager'?'저장하면 결재 대기 중인 문서 내용이 변경됩니다.':'저장 후 문서 상세에서 재상신하면 이사 결재부터 다시 진행합니다.'));
- const cancel=text('button','수정 취소','secondary');cancel.type='button';cancel.onclick=()=>{clearDocumentEdit(source,true);openPage(source==='reports'?'reports':'approval');showWorkflowDocument(source,row.id);};banner.append(cancel);form.prepend(banner);workflowSubmit(source).textContent='수정 저장';
+ return form;
+}
+function focusWorkflowForm(source,form){
  form.scrollIntoView({block:'start'});form.querySelector('input:not([disabled]),textarea,select')?.focus({preventScroll:true});queueGrow();if(source==='leaves')run(updateLeaveForm);
 }
+function editWorkflowDocument(source,row){
+ const form=fillWorkflowForm(source,row);documentEdits[source]={...row};
+ const banner=text('div','','document-edit-notice');banner.setAttribute('role','status');banner.append(text('strong',`기존 문서 수정 · ${row.approval_round}차 · ${statuses[row.status]}`),text('p',row.status==='manager'?'저장하면 결재 대기 중인 문서 내용이 변경됩니다.':'저장 후 문서 상세에서 재상신하면 이사 결재부터 다시 진행합니다.'));
+ const cancel=text('button','수정 취소','secondary');cancel.type='button';cancel.onclick=()=>{clearDocumentEdit(source,true);openPage(source==='reports'?'reports':'approval');showWorkflowDocument(source,row.id);};banner.append(cancel);form.prepend(banner);workflowSubmit(source).textContent='수정 저장';
+ focusWorkflowForm(source,form);
+}
+async function copyWorkflowDocument(source,row,button){
+ button.disabled=true;button.textContent='복사 준비 중…';
+ try{
+  // Fetch evidence through the existing document permissions before replacing the editor.
+  // Files become local, unsaved uploads: source attachment IDs are never submitted as new ones.
+  const attachments=source==='expenses'?await copyExpenseAttachments(row.attachments||[]):[];
+  if(!button.isConnected||!$('#document-dialog').open)return;
+  const form=fillWorkflowForm(source,{...row,attachments});documentCopies[source]={id:row.id};
+  const number=({leaves:'LV',expenses:'EX',approvals:'AP',reports:'WR'})[source]+'-'+String(row.id).padStart(5,'0');
+  const banner=text('div','','document-copy-notice');banner.setAttribute('role','status');
+  banner.append(text('strong',`문서 복사 · 원문 ${number}`),text('p','내용을 수정한 뒤 상신하면 내 이름으로 새 문서가 등록됩니다. 원문은 유지되며 결재 상태·서명·처리 이력은 복사되지 않습니다.'));
+  const cancel=text('button','복사 취소','secondary');cancel.type='button';cancel.onclick=()=>{clearDocumentEdit(source,true);openPage(source==='reports'?'reports':'approval');showWorkflowDocument(source,row.id);};banner.append(cancel);form.prepend(banner);focusWorkflowForm(source,form);
+ }finally{button.disabled=false;button.textContent='복사';}
+}
+for(const [source,prefix] of Object.entries(workflowForms))$('#'+prefix+'-form').addEventListener('reset',()=>{delete documentCopies[source];$('#'+prefix+'-form .document-copy-notice')?.remove();});
 async function saveDocumentEdit(source,body){
  const row=documentEdits[source];if(!row)return false;
  const button=workflowSubmit(source);button.disabled=true;
  try{await api(`${source}/${row.id}/update`,{...body,expected_version:row.version});clearDocumentEdit(source,true);await refresh();openPage(source==='reports'?'reports':'approval');showWorkflowDocument(source,row.id);notice('문서를 수정했습니다.'+(row.status==='manager'?'':' 확인 후 재상신할 수 있습니다.'));return true;}finally{button.disabled=false;}
 }
 function appendDocumentWorkflow(container,source,row){
+ const toolbar=text('div','','document-toolbar'),copy=text('button','복사','secondary document-copy');copy.type='button';copy.title='내용을 복사하여 새 문서 작성';copy.onclick=()=>run(()=>copyWorkflowDocument(source,row,copy));toolbar.append(copy);$('#document-detail').prepend(toolbar);
  if(row.can_edit){const edit=text('button','문서 수정','secondary document-edit');edit.type='button';edit.onclick=()=>editWorkflowDocument(source,row);container.append(edit);}
  for(const [allowed,label,operation,body,description] of [
   [row.can_resubmit,'재상신','resubmit',{},'저장된 내용으로 이사 결재부터 다시 진행합니다. 이전 결재 이력은 보존됩니다.'],

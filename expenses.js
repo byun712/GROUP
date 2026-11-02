@@ -1,6 +1,6 @@
 import {initializeExpenseAttachments,expenseAttachmentList,prepareExpenseAttachments,saveExpenseAttachments} from './expense-attachments.js';
 import {documentPermissions} from './document-state.js';
-import {decisionHistory} from './signatures.js';
+import {decisionHistory,readableDocument} from './signatures.js';
 import {canDeleteDocument,canRejectAfterApproval,nextDocumentId} from './document-deletion.js';
 const categories=['식비','교통비','소모품비','통신비','교육비','4대보험','공과금','급여','기타'];
 const payments=['법인카드','개인카드','계좌이체','현금'];
@@ -29,7 +29,10 @@ export function expenseApi(db,path,method,user,body,send){
   for(const row of rows){Object.assign(row,documentPermissions(db,'expenses',row,user));row.can_reject_after_approval=canRejectAfterApproval(db,'expenses',row,user);row.can_delete=canDeleteDocument(db,'expenses',row,user);row.items=JSON.parse(row.items);row.attachments=expenseAttachmentList(db,row.id);row.history=decisionHistory(db,'expenses',row.id);}return send(200,rows);
  }
  if(path==='/api/expenses'&&method==='POST'){
-  let e;try{e=validateExpense(body);}catch(error){return send(400,{error:error.message});}
+  // A retired research form may only be created by copying a readable original.
+  // It remains absent from the new-form menu and still starts a fresh approval flow.
+  const original=Number.isSafeInteger(body?.copy_from)?readableDocument(db,'expenses',body.copy_from,user):null;
+  let e;try{e=validateExpense(body,{allowResearch:original?.form_type==='research_expense'});}catch(error){return send(400,{error:error.message});}
   const files=prepareExpenseAttachments(db,body.attachments);db.exec('BEGIN IMMEDIATE');try{
   const result=db.prepare('INSERT INTO expense_requests(id,user_id,title,expense_date,vendor,payment,evidence_type,evidence_ref,notes,items,supply,tax,total,created,form_type,project_name,project_code) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(nextDocumentId(db,'expenses'),user.id,e.title,e.expense_date,e.vendor,e.payment,e.evidence_type,e.evidence_ref,e.notes,JSON.stringify(e.items),e.supply,e.tax,e.total,new Date().toISOString(),e.form_type,e.project_name,e.project_code);saveExpenseAttachments(db,Number(result.lastInsertRowid),files);db.exec('COMMIT');return send(201,{id:Number(result.lastInsertRowid),ok:true});}catch(error){db.exec('ROLLBACK');throw error;}
  }

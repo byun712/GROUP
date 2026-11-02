@@ -1,3 +1,4 @@
+import {expenseAttachmentList,prepareExpenseAttachments,saveExpenseAttachments} from './expense-attachments.js';
 import {documentTypes,canEditDocument,canResubmitDocument,canReapproveDocument} from './document-state.js';
 import {canRejectAfterApproval} from './document-deletion.js';
 import {validateDraft,approvalTemplates} from './approvals.js';
@@ -55,12 +56,15 @@ export function documentWorkflowApi(db,path,method,user,body,send) {
     // Optional for older action clients; all current UI actions send it.
     if ((operation!=='action'||body.expected_version!==undefined)&&body.expected_version!==row.version)
       return stop(409,'문서 내용 또는 결재 상태가 변경되었습니다. 문서를 다시 조회하세요');
+    const before=source==='expenses'?{...row,attachments:expenseAttachmentList(db,row.id)}:row;
     if (operation==='update') {
+      const files=source==='expenses'?prepareExpenseAttachments(db,body.attachments,id):null;
       const values=editedValues(source,row,body);
       if (source==='leaves'&&(values.kind!==row.kind||values.start!==row.start||values.end!==row.end))
         replaceLeaveCharges(db,row,values);
       const columns=Object.keys(values);
       db.prepare(`UPDATE ${t.table} SET ${columns.map(k=>`${k}=?`).join(',')} WHERE id=?`).run(...Object.values(values),id);
+      if(files)saveExpenseAttachments(db,id,files);
     }
     // Inactive requests must reacquire their allowance before they become pending/approved.
     if (source==='leaves'&&(action==='approve'||action==='resubmit')) assertLeaveApproval(db,row);
@@ -68,7 +72,7 @@ export function documentWorkflowApi(db,path,method,user,body,send) {
       .run(next,round,Number(stage==='ceo'&&['approve','reject'].includes(action)),id);
     const created=new Date().toISOString();
     const decision=db.prepare(`INSERT INTO ${t.history}(${t.key},actor,action,created,decision_stage,approval_round,document_snapshot) VALUES(?,?,?,?,?,?,?)`)
-      .run(id,user.id,action,created,stage,round,JSON.stringify(row));
+      .run(id,user.id,action,created,stage,round,JSON.stringify(before));
     captureSignature(db,source,decision.lastInsertRowid,user,created);
     if (source==='expenses'&&next==='approved') postApprovedExpense(db,row,user.id);
     db.exec('COMMIT');send(200,{ok:true,id,version:row.version+1,approval_round:round});return true;

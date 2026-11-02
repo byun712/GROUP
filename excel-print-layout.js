@@ -144,11 +144,13 @@ export async function buildFormWorkbook(db,template,document,{saved=false,source
      }
      sheet.getRow(row++).height=LINE_HEIGHT;
     }
+    if(item.vendor||item.vendor_info){const details=wrap('거래처: '+(item.vendor||document.vendor||'—')+(item.vendor_info?' · '+item.vendor_info:''),contentWidth(sheet,1,8),10);for(const line of details){box(sheet,row,1,8,line,{size:10});sheet.getRow(row++).height=LINE_HEIGHT;}}
     total+=Number(item.supply||0)+Number(item.tax||0);
    }
    box(sheet,row,1,4,'합계 (원)',{header:true});const totalCell=box(sheet,row,5,8,total,{align:'right'});totalCell.numFmt='#,##0';sheet.getRow(row++).height=28;
   }
  }
+ if(expense&&document.attachments?.length)full('첨부파일 목록',document.attachments.map(f=>f.filename+' ('+Math.ceil(f.size/1024)+' KB)').join('\n'));
  sheet.pageSetup.printArea=`A1:H${row-1}`;
  // Keep the printable form compact. The full audit trail stays available in its own sheet.
  if(saved&&history.length){

@@ -49,7 +49,7 @@ test('Admin-only task hard deletion and personal attendance calendar/edit/delete
  assert.equal((await call(`attendance/${attendance}/update`,admin,{clock_in:'2026-11-02T09:00',clock_out:'',version:1})).status,409);
  assert.equal((await call(`attendance/${attendance}/update`,admin,{clock_in:'2026-11-02T23:00',clock_out:'2026-11-03T06:00',version:2})).status,200);
  assert.equal((await call(`attendance/${attendance}/update`,admin,{clock_in:'2026-11-02T09:00',clock_out:'',version:3})).status,200);row=db.prepare('SELECT * FROM attendance WHERE id=?').get(attendance);assert.equal(row.clock_out,null);
- const csv=await call(`attendance/export?month=2026-11&user_id=${staffId}`,admin);assert.equal(csv.status,200);assert.match(csv.data,/2026-11-02 09:00:00/);
+ const csv=await call(`attendance/export?month=2026-11&user_id=${staffId}`,admin);assert.equal(csv.status,200);assert.match(csv.data,/2026\. 11\. 2\. 오전 9:00:00/);assert.match(csv.data,/아이디,이메일,전화번호/);assert.match(csv.data,/staff/);
  // Leave appears immediately after the director signs; no reason is exposed in calendars.
  const leaveBody={kind:'연차',start:'2026-11-02',end:'2026-11-03',reason:'민감한 휴가 사유'};
  const leave=(await call('leaves',staff,leaveBody)).data.id;

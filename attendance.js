@@ -9,11 +9,17 @@ function targetUser(db,user,url){const raw=url.searchParams.get('user_id'),id=ra
 function monthRange(url){const month=url.searchParams.get('month');check(typeof month==='string'&&/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month),'조회 월을 YYYY-MM 형식으로 입력하세요');return {month,start:month+'-01',end:new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10)};}
 // Admin input is a local Korean date/time; never interpret it in the server timezone.
 export function koreanTimestamp(value){check(typeof value==='string'&&/^[1-9]\d{3}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value)&&date(value.slice(0,10)),'출퇴근 시각을 한국 날짜·시간으로 입력하세요');return new Date(value+(value.length===16?':00':'')+'+09:00').toISOString();}
+export function attendanceCsv(user,month,records){
+ const local=value=>value?new Date(value).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'—';
+ const cell=value=>{let s=String(value??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};
+ const rows=[['근태 기록','',''],['이름','직급','소속조직'],[user.name,user.job_title||'—',user.organization||'—'],['아이디','이메일','전화번호'],[user.login,user.email||'—',user.phone||'—'],['조회 월',month,'한국 시간 기준'],['','',''],['날짜','출근 시각 (한국 시간)','퇴근 시각 (한국 시간)'],...records.map(r=>[r.day,local(r.clock_in),local(r.clock_out)])];
+ return '\uFEFF'+rows.map(row=>row.map(cell).join(',')).join('\r\n')+'\r\n';
+}
 export function attendanceApi(db,path,method,user,body,send,res,url){try{
  if((path==='/api/attendance/calendar'||path==='/api/attendance/export')&&method==='GET'){
   const range=monthRange(url),target=targetUser(db,user,url);if(target.error)return send(target.error,{error:target.error===403?'본인의 근태만 조회할 수 있습니다':'사용자를 찾을 수 없습니다'});
   const records=db.prepare('SELECT id,user_id,day,clock_in,clock_out,version FROM attendance WHERE user_id=? AND day>=? AND day<=? ORDER BY day').all(target.id,range.start,range.end);
-  if(path.endsWith('/export')){const local=v=>v?new Date(v).toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}):'';const csv='\uFEFF날짜,출근(한국시간),퇴근(한국시간)\r\n'+records.map(r=>[r.day,local(r.clock_in),local(r.clock_out)].join(',')).join('\r\n');res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="attendance-${target.id}-${range.month}.csv"`,'Cache-Control':'no-store'});res.end(csv);return;}
+  if(path.endsWith('/export')){const identity=db.prepare('SELECT login,email,phone FROM users WHERE id=?').get(target.id);const csv=attendanceCsv({...target,...identity},range.month,records);res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="attendance-${target.id}-${range.month}.csv"`,'Cache-Control':'no-store'});res.end(csv);return;}
   const users=user.is_admin?db.prepare('SELECT id,name,job_title,organization,active FROM users ORDER BY active DESC,name,id').all():[target];
   const leaves=db.prepare("SELECT id,user_id,kind,start,end,status FROM leave_requests WHERE user_id=? AND status IN ('ceo','approved') AND start<=? AND end>=? ORDER BY start,id").all(target.id,range.end,range.start);
   return send(200,{month:range.month,user:target,users,records,leaves,can_manage:!!user.is_admin});

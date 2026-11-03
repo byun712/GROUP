@@ -40,10 +40,15 @@ export function replaceLeaveCharges(db,row,values){
 }
 
 const validYear=value=>{const year=Number(value);check(Number.isInteger(year)&&year>=2000&&year<=2050,'조회 연도는 2000~2050년으로 선택하세요');return year;};
+function ownLeaveProfile(db,userId,year){
+ const profile=db.prepare("SELECT u.name,u.job_title,u.organization,coalesce(p.hire_date,'') hire_date,coalesce(p.retire_date,'') retire_date FROM users u LEFT JOIN leave_profiles p ON p.user_id=u.id WHERE u.id=?").get(userId),today=kDate(new Date());
+ const asOf=Number(today.slice(0,4))===year?today:`${year}-12-31`,end=profile.retire_date&&profile.retire_date<asOf?profile.retire_date:asOf,start=profile.hire_date;
+ return {...profile,as_of:asOf,service_year:start&&start<=end?Number(end.slice(0,4))-Number(start.slice(0,4))-(end.slice(5)<start.slice(5)?1:0)+1:null};
+}
 function adminRows(db,year){return db.prepare("SELECT u.id,u.name,u.login,u.job_title,u.organization,u.active,coalesce(p.hire_date,'') hire_date,coalesce(p.retire_date,'') retire_date,coalesce(p.version,0) profile_version FROM users u LEFT JOIN leave_profiles p ON p.user_id=u.id ORDER BY u.active DESC,u.name,u.id").all().map(u=>({...u,balances:leaveBalances(db,u.id,year)}));}
 function units(value){check(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1000&&Number.isInteger(value*2),'휴가 일수는 0~1,000 사이의 0.5일 단위로 입력하세요');return value*2;}
 export async function leaveManagementApi(db,path,method,user,body,send,res,url){try{
- if(path==='/api/leave-balance'&&method==='GET'){const year=validYear(url.searchParams.get('year'));if(url.searchParams.has('user_id')&&Number(url.searchParams.get('user_id'))!==user.id)return send(403,{error:'본인의 휴가 잔여 일수만 조회할 수 있습니다'});return send(200,{year,kinds:LEAVE_KINDS,pools:LEAVE_POOLS,balances:leaveBalances(db,user.id,year)});}
+ if(path==='/api/leave-balance'&&method==='GET'){const year=validYear(url.searchParams.get('year'));if(url.searchParams.has('user_id')&&Number(url.searchParams.get('user_id'))!==user.id)return send(403,{error:'본인의 휴가 잔여 일수만 조회할 수 있습니다'});return send(200,{year,profile:ownLeaveProfile(db,user.id,year),kinds:LEAVE_KINDS,pools:LEAVE_POOLS,balances:leaveBalances(db,user.id,year)});}
  if(path==='/api/leave-preview'&&method==='POST'){
   let excludeId=0,editing=null;
   if(body.document_id!==undefined){const row=db.prepare('SELECT * FROM leave_requests WHERE id=?').get(Number(body.document_id));if(!row||!canEditDocument(row,user))return send(403,{error:'수정할 수 있는 본인 문서만 조회하세요'});excludeId=row.id;editing=row;}

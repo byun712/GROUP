@@ -51,11 +51,11 @@ try{
  await call('author','expenses',{...legacy,copy_from:cases.find(c=>c.source==='expenses').id},400);
  browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||undefined,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- const login=async name=>{await page.locator('#login [name=login]').fill(name);await page.locator('#login [name=password]').fill(password);await page.locator('#login button').click();await page.locator('#workspace').waitFor();await page.waitForFunction(()=>document.querySelector('#home-expenses .cell-link'));};
+ const login=async name=>{await page.locator('#login [name=login]').fill(name);await page.locator('#login [name=password]').fill(password);await page.locator('#login button').click();await page.locator('#workspace').waitFor();await page.waitForFunction(()=>document.querySelector('#home-calendar-grid').dataset.month);};
  await page.goto(base);await login('author');
  const out=resolve(process.env.UI_SCREENSHOT_DIR||'/tmp/group-document-copy-ui');mkdirSync(out,{recursive:true});
- const homeTitle=page.locator('#home-expenses .cell-link').first();assert.equal(await homeTitle.evaluate(e=>getComputedStyle(e).color),'rgb(255, 255, 255)');await homeTitle.hover();assert.equal(await homeTitle.evaluate(e=>getComputedStyle(e).color),'rgb(255, 255, 255)');
- await page.screenshot({path:join(out,'home-expense-white-title.png'),fullPage:true});
+ assert.equal(await page.locator('#home-expenses, #home-documents').count(),0);assert.equal(await page.locator('#home-calendar-grid').isVisible(),true);
+ await page.screenshot({path:join(out,'home-calendar.png'),fullPage:true});
  const open=async c=>{await page.keyboard.press('Escape');await page.locator('.sidebar [data-tab=approval]').click();await page.locator('#approval-box-tabs [data-box=all]').click();await page.locator('#approval-template-filter').selectOption(c.kind);const number=({leaves:'LV',expenses:'EX',approvals:'AP',reports:'WR'})[c.source]+'-'+String(c.id).padStart(5,'0');await page.locator('#approval-query').fill(number);await page.locator('#approval-documents .cell-link').getByText(number,{exact:true}).click();};
  for(const [i,c] of cases.entries()){
   console.log('Copy case:',c.kind,c.status);
@@ -100,5 +100,5 @@ try{
  const saved=page.waitForResponse(r=>r.url()===base+'/api/expenses'&&r.request().method()==='POST');await page.locator('#expense-form').getByRole('button',{name:'지출결의서 상신',exact:true}).click();const copiedId=(await (await saved).json()).id,byDirector=(await call('director','expenses')).find(r=>r.id===copiedId);assert.equal(byDirector.name,'director');assert.equal(byDirector.status,'manager');assert.deepEqual(byDirector.history,[]);
  // Removing evidence from a copy does not remove the source's independently stored bytes.
  await call('director',`expenses/${copiedId}/update`,{...expenseBody,attachments:[],expected_version:byDirector.version});assert.deepEqual(snapshot('expenses',expense.id),expense.snapshot);
- assert.deepEqual(errors,[]);console.log(`PASS: white home expense titles; ${cases.length} copy/edit/submit cases covering all 16 active templates and five states; independent PDF/PNG attachments; empty approvals/signatures; original immutability; cancel/failure isolation; current author ownership; protected legacy copies.`);
+ assert.deepEqual(errors,[]);console.log(`PASS: home calendar; ${cases.length} copy/edit/submit cases covering all 16 active templates and five states; independent PDF/PNG attachments; empty approvals/signatures; original immutability; cancel/failure isolation; current author ownership; protected legacy copies.`);
 }finally{await browser?.close();db.close();await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}

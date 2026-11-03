@@ -10,7 +10,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.
 try{
  browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||undefined,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base);
- const login=async name=>{await page.locator('#login [name=login]').fill(name);await page.locator('#login [name=password]').fill('resubmit-browser-test');await page.locator('#login button').click();await page.locator('#workspace').waitFor();await page.waitForFunction(()=>document.querySelector('#home-documents').textContent.length>0);};
+ const login=async name=>{await page.locator('#login [name=login]').fill(name);await page.locator('#login [name=password]').fill('resubmit-browser-test');await page.locator('#login button').click();await page.locator('#workspace').waitFor();await page.waitForFunction(()=>document.querySelector('#home-calendar-grid').dataset.month);};
  const relogin=async name=>{await page.keyboard.press('Escape');await page.locator('#logout').click();await login(name);};
  const call=(path,body)=>page.evaluate(async({path,body})=>{const r=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});if(!r.ok)throw Error(await r.text());return r.json();},{path,body});
  const open=async kind=>{await page.keyboard.press('Escape');await page.locator('.sidebar [data-tab=approval]').click();await page.locator('#approval-box-tabs [data-box=all]').click();await page.locator('#approval-template-filter').selectOption(kind);await page.locator('#approval-documents .cell-link').click();};
@@ -23,7 +23,7 @@ try{
   {source:'reports',kind:'daily_work_log',form:'report',field:'completed_work',body:{template_id:'daily_work_log',title:'원래 일지',fields:{report_date:'2026-11-02',completed_work:'실시 원본',planned_work:'예정 원본',ongoing_work:'진행 원본',notes:'특이사항 원본'}}}
  ];
  for(const d of docs)d.id=(await call(d.source,d.body)).id;
- await page.reload();await page.locator('#workspace').waitFor();await page.waitForFunction(()=>document.querySelector('#home-documents').textContent.includes('원래'));
+ await page.reload();await page.locator('#workspace').waitFor();await page.waitForFunction(()=>document.querySelector('#home-calendar-grid').dataset.month);
  const out=resolve(process.env.UI_SCREENSHOT_DIR||'/tmp/group-resubmission-ui');mkdirSync(out,{recursive:true});
  // The same existing forms must populate every field and save into the original document.
  for(const d of docs){

@@ -8,7 +8,7 @@ function text(tag,value,cls){const e=document.createElement(tag);e.textContent=v
 const time=s=>s?new Date(s).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'—';
 const shortTime=s=>s?new Date(s).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}):'—';
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-function openPage(id){if(!pages[id]||['approvalSettings','leaveAdmin'].includes(id)&&!me?.user.is_admin||['accounting','sealSettings'].includes(id)&&!['manager','ceo'].includes(me?.user.role))return;setWorkspaceTheme(id);const userContext=['users','leaveAdmin','approvalSettings','sealSettings'].includes(id);$('#users-submenu').hidden=!userContext||!(me?.user.is_admin||['manager','ceo'].includes(me?.user.role));$('#message').textContent='';$('#menu-dialog').close();const approvalContext=['approval','draft','leave','expense'].includes(id);$('#approval-draft-picker').hidden=!approvalContext;$('#draft-menu').hidden=!approvalContext;$('#new-draft').setAttribute('aria-expanded',String(approvalContext));$('.sidebar [data-tab=approval]').setAttribute('aria-expanded',String(approvalContext));for(const key of Object.keys(pages))$('#'+key).hidden=key!==id;for(const b of document.querySelectorAll('[data-tab]')){b.classList.toggle('active',b.dataset.tab===(userContext?'users':id==='reportDraft'?'reports':['leave','expense','draft'].includes(id)?'approval':id));if(b.dataset.tab===(userContext?'users':id==='reportDraft'?'reports':['leave','expense','draft'].includes(id)?'approval':id))b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const b of $('#users-submenu').querySelectorAll('button')){const active=b.id==='approval-settings-button'?id==='approvalSettings':b.dataset.tab===id;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}$('#page-eyebrow').textContent=id==='home'?'MY WORKSPACE':pages[id];$('#welcome').textContent=id==='home'?`${me.user.name}님, 안녕하세요.`:pages[id];if(id==='calendar')run(loadCalendar);if(id==='home')run(loadHomeCalendar);if(id==='announcements')run(loadNoticeBoard);document.dispatchEvent(new CustomEvent('workspace-page',{detail:id}));if(typeof growFormFields==='function')requestAnimationFrame(growFormFields);}
+function openPage(id){if(!pages[id]||['approvalSettings','leaveAdmin'].includes(id)&&!me?.user.is_admin||['accounting','sealSettings'].includes(id)&&!['manager','ceo'].includes(me?.user.role))return;document.documentElement.dataset.page=id;setWorkspaceTheme(id);const userContext=['users','leaveAdmin','approvalSettings','sealSettings'].includes(id);$('#users-submenu').hidden=!userContext||!(me?.user.is_admin||['manager','ceo'].includes(me?.user.role));$('#message').textContent='';$('#menu-dialog').close();const approvalContext=['approval','draft','leave','expense'].includes(id);$('#approval-draft-picker').hidden=!approvalContext;$('#draft-menu').hidden=!approvalContext;$('#new-draft').setAttribute('aria-expanded',String(approvalContext));$('.sidebar [data-tab=approval]').setAttribute('aria-expanded',String(approvalContext));for(const key of Object.keys(pages))$('#'+key).hidden=key!==id;for(const b of document.querySelectorAll('[data-tab]')){b.classList.toggle('active',b.dataset.tab===(userContext?'users':id==='reportDraft'?'reports':['leave','expense','draft'].includes(id)?'approval':id));if(b.dataset.tab===(userContext?'users':id==='reportDraft'?'reports':['leave','expense','draft'].includes(id)?'approval':id))b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const b of $('#users-submenu').querySelectorAll('button')){const active=b.id==='approval-settings-button'?id==='approvalSettings':b.dataset.tab===id;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}$('#page-eyebrow').textContent=id==='home'?'MY WORKSPACE':pages[id];$('#welcome').textContent=id==='home'?`${me.user.name}님, 안녕하세요.`:pages[id];if(id==='calendar')run(loadCalendar);if(id==='home'){window.scrollTo(0,0);updateHomeViewport();run(loadHomeCalendar);}if(id==='announcements')run(loadNoticeBoard);document.dispatchEvent(new CustomEvent('workspace-page',{detail:id}));if(typeof growFormFields==='function')requestAnimationFrame(growFormFields);}
 function badge(l){return text('span',statuses[l.status],'badge '+l.status);}
 function documentRow(l,full){const a=document.createElement('article'),head=text('div','','document-head');head.append(text('strong',`${l.name} · ${l.kind}`),badge(l));a.append(head,text('p',`${l.start} ~ ${l.end}`));if(!full){const link=text('button','문서 상세 보기','cell-link');link.onclick=()=>showDocument(l.id);a.append(link);}if(full){a.append(text('p',l.reason));for(const h of l.history)a.append(text('small',`${h.approval_round}차 · ${h.name} · ${actions[h.action]} · ${time(h.created)}`));const choices=[];if(l.user_id===me.user.id&&l.status==='manager')choices.push('withdraw');if(l.status===me.user.role)choices.push('approve','reject');for(const action of choices){const b=text('button',actions[action]);b.onclick=()=>run(async()=>{await api(`leaves/${l.id}/action`,{action,expected_version:l.version});await refresh();});a.append(b);}}return a;}
 function createGrid(headers,rows){const wrap=text('div','','table-scroll'),table=text('table','','data-grid'),thead=document.createElement('thead'),tr=document.createElement('tr');for(const header of headers){const th=document.createElement('th');th.scope='col';if(typeof header==='string')th.textContent=header;else{const button=text('button',header.label,'cell-link');button.onclick=header.action;th.append(button);}tr.append(th);}thead.append(tr);const tbody=document.createElement('tbody');for(const cells of rows){const row=document.createElement('tr');for(const cell of cells){const td=document.createElement('td');if(cell instanceof Node)td.append(cell);else td.textContent=cell;row.append(td);}tbody.append(row);}if(!rows.length){const row=document.createElement('tr'),td=text('td','조회된 기록이 없습니다.','empty');td.colSpan=headers.length;row.append(td);tbody.append(row);}table.append(thead,tbody);wrap.append(table);return wrap;}
@@ -81,7 +81,8 @@ async function loadHomeCalendar(){
  try{
   const data=await api('schedules?month='+encodeURIComponent(month));if(request!==homeCalendarRequest)return;
   renderScheduleGrid(grid,month,data.events,data.leaves);grid.dataset.month=month;
-  status.textContent=`일정 ${data.events.length}건 · 승인 휴가 ${data.leaves.length}건 · 날짜를 누르면 등록, 일정 이름을 누르면 상세 확인·수정할 수 있습니다.`;
+  status.textContent=`일정 ${data.events.length}건 · 승인 휴가 ${data.leaves.length}건`;
+  grid.title='날짜를 누르면 일정 등록, 일정 이름이나 더보기를 누르면 상세 확인';
  }catch(error){if(request===homeCalendarRequest)status.textContent='일정을 불러오지 못했습니다. '+error.message+' 조회 월을 다시 선택해 주세요.';}
  finally{if(request===homeCalendarRequest)grid.setAttribute('aria-busy','false');}
 }
@@ -177,11 +178,59 @@ $('#approver-inbox').onclick=()=>run(openApproverInbox);
 $('#home-approval-action').onclick=()=>run(async()=>{if(['manager','ceo'].includes(me.user.role))await openApproverInbox();else{approvalBox='approved';approvalPage=1;renderApprovalCenter();openPage('approval');}});
 
 function renderScheduleGrid(grid,month,events,leaves){
- const [year,m]=month.split('-').map(Number);if(!year||!m)return;const days=new Date(Date.UTC(year,m,0)).getUTCDate(),first=new Date(Date.UTC(year,m-1,1)).getUTCDay();grid.replaceChildren();for(const day of ['일','월','화','수','목','금','토'])grid.append(text('div',day,'calendar-cell calendar-day'));
+ const [year,m]=month.split('-').map(Number);if(!year||!m)return;
+ const days=new Date(Date.UTC(year,m,0)).getUTCDate(),first=new Date(Date.UTC(year,m-1,1)).getUTCDay(),home=grid.id==='home-calendar-grid';
+ grid.replaceChildren();grid.style.setProperty('--calendar-weeks',Math.ceil((first+days)/7));
+ for(const day of ['일','월','화','수','목','금','토'])grid.append(text('div',day,'calendar-cell calendar-day'));
  for(let i=0;i<first;i++)grid.append(text('div','','calendar-cell blank'));
- for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),cell=text('div','','calendar-cell'+(date===today()?' today':'')),dateButton=text('button',String(day),'calendar-date');dateButton.setAttribute('aria-label',date+' 일정 등록');dateButton.onclick=()=>openSchedule(null,date);cell.append(dateButton);for(const e of events.filter(e=>e.start_date<=date&&e.end_date>=date)){const button=text('button',(e.all_day?'':e.start_time+' ')+e.title,'calendar-event event-'+e.visibility);button.title=e.title+' · '+scheduleVisibility(e.visibility)+' 일정';button.onclick=()=>openSchedule(e);cell.append(button);}for(const leave of leaves.filter(l=>l.start<=date&&l.end>=date)){const label=text('div',`${leave.name} · ${leave.kind}`,'calendar-event event-leave');label.title='이사 승인된 휴가 · '+leave.start+' ~ '+leave.end;cell.append(label);}grid.append(cell);}
+ for(let day=1;day<=days;day++){
+  const date=month+'-'+String(day).padStart(2,'0'),cell=text('div','','calendar-cell'+(date===today()?' today':'')),dateButton=text('button',String(day),'calendar-date');
+  const dayEvents=events.filter(e=>e.start_date<=date&&e.end_date>=date),dayLeaves=leaves.filter(l=>l.start<=date&&l.end>=date);
+  dateButton.setAttribute('aria-label',date+' 일정 등록');dateButton.onclick=()=>openSchedule(null,date);
+  if(home){
+   const heading=text('div','','home-calendar-date-heading'),more=text('button','','home-calendar-more');more.hidden=true;
+   more.setAttribute('aria-label',date+' 일정 '+(dayEvents.length+dayLeaves.length)+'건 모두 보기');more.setAttribute('aria-haspopup','dialog');
+   more.onclick=()=>openHomeDay(date,dayEvents,dayLeaves);heading.append(dateButton,more);cell.append(heading);
+  }else cell.append(dateButton);
+  for(const e of dayEvents){const button=text('button',(e.all_day?'':e.start_time+' ')+e.title,'calendar-event event-'+e.visibility);button.title=e.title+' · '+scheduleVisibility(e.visibility)+' 일정';button.onclick=()=>openSchedule(e);cell.append(button);}
+  for(const leave of dayLeaves){const label=text('div',`${leave.name} · ${leave.kind}`,'calendar-event event-leave');label.title='이사 승인된 휴가 · '+leave.start+' ~ '+leave.end;cell.append(label);}
+  grid.append(cell);
+ }
  for(let i=0;i<(7-(first+days)%7)%7;i++)grid.append(text('div','','calendar-cell blank'));
+ if(home)fitHomeCalendarEvents();
 }
+
+function openHomeDay(date,events,leaves){
+ const dialog=$('#home-day-dialog'),list=$('#home-day-events');list.replaceChildren();$('#home-day-title').textContent=date+' · 일정 '+(events.length+leaves.length)+'건';
+ for(const event of events){
+  const row=text('article','','home-day-event'),button=text('button',event.title,'calendar-event event-'+event.visibility);
+  button.onclick=()=>{dialog.close();openSchedule(event);};
+  row.append(button,text('small',`${event.start_date} ~ ${event.end_date} · ${event.all_day?'종일':event.start_time+' ~ '+event.end_time} · ${scheduleVisibility(event.visibility)} · ${event.name}${event.project_title?' · 프로젝트: '+event.project_title:''}`));list.append(row);
+ }
+ for(const leave of leaves){const row=text('article','','home-day-event');row.append(text('strong',`${leave.name} · ${leave.kind}`,'event-leave'),text('small',leave.start+' ~ '+leave.end+' · 이사 승인 휴가'));list.append(row);}
+ $('#home-day-add').onclick=()=>{dialog.close();openSchedule(null,date);};dialog.showModal();
+}
+
+// Home uses the available desktop height; other workspaces retain their natural height.
+function updateHomeViewport(){
+ const top=document.querySelector('.topbar').offsetHeight+$('#message').offsetHeight;
+ document.documentElement.style.setProperty('--home-workspace-top',top+'px');
+ requestAnimationFrame(fitHomeCalendarEvents);
+}
+function fitHomeCalendarEvents(){
+ const grid=$('#home-calendar-grid');if($('#home').hidden||!grid.clientHeight)return;
+ const fitted=getComputedStyle(grid).getPropertyValue('--home-fit').trim()==='1';
+ for(const cell of grid.querySelectorAll('.calendar-cell:has(.home-calendar-date-heading)')){
+  const heading=cell.querySelector('.home-calendar-date-heading'),more=heading.querySelector('.home-calendar-more'),items=[...cell.querySelectorAll('.calendar-event')];
+  // Each compact chip occupies 20px. Reserve the date line, padding and borders.
+  const visible=fitted?Math.max(0,Math.floor((cell.clientHeight-heading.offsetHeight-6)/20)):items.length;
+  for(let i=0;i<items.length;i++)items[i].hidden=i>=visible;
+  const remaining=Math.max(0,items.length-visible);more.hidden=remaining===0;more.textContent='+'+remaining+' 더보기';
+ }
+}
+const homeResizeObserver=new ResizeObserver(updateHomeViewport);
+for(const element of [document.querySelector('.topbar'),$('#message'),$('#home-calendar-grid')])homeResizeObserver.observe(element);
+window.addEventListener('resize',updateHomeViewport);
 function renderScheduleCalendar(){
  const month=$('#calendar-month').value,events=scheduleData.events.filter(e=>$('#calendar-show-'+e.visibility).checked),leaves=$('#calendar-show-leave').checked?scheduleData.leaves:[];
  renderScheduleGrid($('#calendar-grid'),month,events,leaves);

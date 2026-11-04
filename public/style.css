@@ -92,9 +92,9 @@ button,input,select,textarea,option,optgroup,pre,code,kbd,samp{font-family:inher
  :root[data-page=home] .sidebar{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain}
  :root[data-page=home] .sidebar>*{flex-shrink:0}
  :root[data-page=home] .content{height:100%;min-height:0;padding:12px 16px 8px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;align-self:stretch}
- :root[data-page=home] .app-launcher{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin:0}
- :root[data-page=home] .app-launcher button{min-height:58px;padding:5px 4px;gap:4px;font-size:11px}
- :root[data-page=home] .app-launcher button span{width:26px;height:26px;font-size:18px;border-radius:7px}
+ :root .app-launcher{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin:0}
+ :root .app-launcher button{min-height:58px;padding:5px 4px;gap:4px;font-size:11px}
+ :root .app-launcher button span{width:26px;height:26px;font-size:18px;border-radius:7px}
  :root[data-page=home] .page-heading{margin:0;padding:0 0 6px}
  :root[data-page=home] .page-heading h1{font-size:18px;line-height:1.4;margin:2px 0}
  :root[data-page=home] .page-heading .eyebrow{font-size:9px;line-height:1.4}
@@ -122,7 +122,7 @@ button,input,select,textarea,option,optgroup,pre,code,kbd,samp{font-family:inher
 }
 @media(min-width:1001px) and (min-height:680px) and (max-height:800px){
  :root[data-page=home] .content{padding:8px 14px 4px;gap:6px}
- :root[data-page=home] .app-launcher button{min-height:52px;padding:3px 4px;gap:2px}
+ :root .app-launcher button{min-height:52px;padding:3px 4px;gap:2px}
  :root[data-page=home] .page-heading{padding-bottom:4px}
  :root[data-page=home] .page-heading .eyebrow{display:none}
  #home>.dashboard-grid{gap:8px}
@@ -136,3 +136,8 @@ button,input,select,textarea,option,optgroup,pre,code,kbd,samp{font-family:inher
 
 .notice-form{background:#f8fbfd;color:#38576b}.notice-form input,.notice-form textarea,.notice-form select{background:#fff;border:1px solid #cbdde9;border-radius:4px}.notice-form label{font-size:12px;line-height:1.8}.notice-form textarea{min-height:230px}.project-color-swatch{display:inline-block;flex:none;width:14px;height:14px;border-radius:50%;border:1px solid #0002}
 .sidebar nav>.sidebar-approval-shortcuts,.sidebar nav>[data-tab=home]{grid-column:1/-1}.sidebar-approval-shortcuts{width:100%;min-width:0}.sidebar-approval-shortcuts button{width:100%;min-width:0;min-height:0;height:auto;box-sizing:border-box}.sidebar-approval-shortcuts button span{width:auto!important;font-size:11px!important}.sidebar-approval-shortcuts button strong{position:static}.sidebar-approval-shortcuts{align-items:start}
+
+/* Keep the launcher at the same width and position on every desktop page. */
+@media(min-width:1001px) and (min-height:680px){:root .content{width:100%;min-width:0;padding-left:16px;padding-right:16px;padding-top:12px}:root .app-launcher button{height:58px;flex-shrink:0}}
+@media(min-width:1001px) and (min-height:680px) and (max-height:800px){:root .content{padding-left:14px;padding-right:14px;padding-top:8px}:root .app-launcher button{height:52px}}
+#users-submenu[hidden],#draft-menu[hidden]{display:none!important}

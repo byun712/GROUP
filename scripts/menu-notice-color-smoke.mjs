@@ -16,6 +16,19 @@ try{
  const keys=['projects','mail','approval','reports','calendar','announcements','attendance','accounting','customers','users'];
  assert.deepEqual(await page.locator('.app-launcher button').evaluateAll(nodes=>nodes.map(n=>n.dataset.open)),keys);
  assert.deepEqual(await page.locator('.sidebar nav > button').evaluateAll(nodes=>nodes.map(n=>n.dataset.tab)),['home',...keys]);
+ for(const viewport of [{width:1440,height:1000},{width:1280,height:720}]){
+  await page.setViewportSize(viewport);await page.locator('.sidebar [data-tab=home]').click();await page.mouse.move(0,0);
+  const dimensions=()=>page.locator('.app-launcher button').evaluateAll(nodes=>nodes.filter(n=>!n.hidden).map(n=>({width:n.offsetWidth,height:n.offsetHeight})));
+  const homeSizes=await dimensions();
+  for(const key of keys){await page.locator(`.app-launcher [data-open=${key}]`).click();await page.mouse.move(0,0);assert.deepEqual(await dimensions(),homeSizes,`launcher dimensions: ${key}`);}
+  await page.locator('.app-launcher [data-open=approval]').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
+  await page.locator('#new-draft').click();assert.equal(await page.locator('#draft-menu').isVisible(),true);
+  await page.locator('#new-draft').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
+  await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),false);
+  await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),true);
+  await page.locator('.app-launcher [data-open=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),false);
+ }
+ await page.setViewportSize({width:1440,height:1000});await page.locator('.sidebar [data-tab=home]').click();
  const boxes=await page.locator('.sidebar-approval-shortcuts button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().toJSON()));
  assert.ok(Math.abs(boxes[0].width-boxes[0].height)<1,JSON.stringify(boxes));assert.equal(boxes[0].top,boxes[1].top);assert.ok(boxes[0].right<boxes[1].left);
  await page.locator('.sidebar [data-tab=announcements]').click();await page.locator('#notice-write').click();

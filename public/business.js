@@ -92,9 +92,32 @@ $('#ledger-manual').onclick=()=>bmodal('수입·지출 기록',form=>{form.appen
 function profileFields(form,u={}){bfield(form,'name','이름',{required:true,maxLength:80,value:u.name});bfield(form,'job_title','직급',{required:true,options:[['','직급 선택'],...userOptions.job_titles.map(v=>[v,v])],value:u.job_title||''});bfield(form,'organization','소속조직',{required:true,options:[['','소속조직 선택'],...userOptions.organizations.map(v=>[v,v])],value:u.organization||''});const phone=bfield(form,'phone','전화번호',{type:'tel',required:true,value:u.phone||''});phone.maxLength=40;const email=bfield(form,'email','이메일',{type:'email',required:true,value:u.email||''});email.maxLength=150;}
 async function loadUsers(){[userState,userOptions]=await Promise.all([api('users'),api('user-options')]);$('#user-new').hidden=!me.user.is_admin;$('#user-new').disabled=false;const target=$('#user-cards');target.replaceChildren();for(const u of userState){const card=bcard(u.name,`${u.login}\n${u.organization||'소속 미설정'} · ${u.job_title||'직급 미설정'}\n${u.phone||'전화번호 미설정'}\n${u.email||'이메일 미설정'}`,()=>me.user.is_admin?editUser(u):editProfile(u));card.append(text('span',`${roleNames[u.role]} · ${u.active?'활성':'비활성'}${u.is_admin?' · Admin':''}`,'badge'));target.append(card);}}
 $('#user-new').onclick=()=>bmodal('사용자 생성',form=>{bfield(form,'login','로그인 아이디',{required:true,maxLength:100});profileFields(form);bfield(form,'role','결재 역할',{options:Object.entries(roleNames),value:'employee'});bfield(form,'password','초기 비밀번호 (12자 이상)',{type:'password',required:true,maxLength:256});bfield(form,'is_admin','동일한 Admin 권한 부여',{type:'checkbox'});},values=>api('users',{...values,is_admin:values.is_admin==='on'}),loadUsers);
-function editProfile(u){bmodal('내 사용자 정보 수정',form=>{bfield(form,'login','로그인 아이디',{required:true,maxLength:100,value:u.login});profileFields(form,u);form.append(text('small','아이디를 변경하면 새 아이디로 다시 로그인하세요. 직급·소속조직 수정으로 결재 역할이나 Admin 권한이 바뀌지 않습니다.'));},values=>api('users/me/update',values),()=>location.reload());}
-function editUser(u){bmodal('사용자 정보·권한 관리',form=>{bfield(form,'login','로그인 아이디',{required:true,maxLength:100,value:u.login});profileFields(form,u);bfield(form,'role','결재 역할',{options:Object.entries(roleNames),value:u.role});bfield(form,'active','활성 계정',{type:'checkbox',value:u.active});bfield(form,'is_admin','Admin 권한',{type:'checkbox',value:u.is_admin});const reset=text('button','비밀번호 초기화','secondary');reset.type='button';reset.onclick=()=>resetPassword(u);const remove=text('button','사용자 영구 삭제','danger');remove.type='button';remove.onclick=()=>deleteUser(u);form.append(remove,reset,text('small','권한·상태 변경 시 해당 사용자는 다시 로그인해야 합니다. 마지막 활성 Admin은 해제할 수 없습니다.'));},values=>api(`users/${u.id}/update`,{...values,active:values.active==='on',is_admin:values.is_admin==='on'}),async()=>{if(u.id===me.user.id)location.reload();else await loadUsers();});}
-function resetPassword(u){bmodal(u.name+' 비밀번호 초기화',form=>{bfield(form,'password','새 비밀번호 (12자 이상)',{type:'password',required:true,maxLength:256});},values=>api(`users/${u.id}/password`,values),async()=>{if(u.id===me.user.id)location.reload();else await loadUsers();});}
+function editProfile(u){bmodal('내 사용자 정보 수정',form=>{bfield(form,'login','로그인 아이디',{required:true,maxLength:100,value:u.login});profileFields(form,u);form.append(userPasswordButton(u));form.append(text('small','아이디를 변경하면 새 아이디로 다시 로그인하세요. 직급·소속조직 수정으로 결재 역할이나 Admin 권한이 바뀌지 않습니다.'));},values=>api('users/me/update',values),()=>location.reload());}
+function editUser(u){bmodal('사용자 정보·권한 관리',form=>{bfield(form,'login','로그인 아이디',{required:true,maxLength:100,value:u.login});profileFields(form,u);bfield(form,'role','결재 역할',{options:Object.entries(roleNames),value:u.role});bfield(form,'active','활성 계정',{type:'checkbox',value:u.active});bfield(form,'is_admin','Admin 권한',{type:'checkbox',value:u.is_admin});const reset=userPasswordButton(u);const remove=text('button','사용자 영구 삭제','danger');remove.type='button';remove.onclick=()=>deleteUser(u);form.append(remove,reset,text('small','권한·상태 변경 시 해당 사용자는 다시 로그인해야 합니다. 마지막 활성 Admin은 해제할 수 없습니다.'));},values=>api(`users/${u.id}/update`,{...values,active:values.active==='on',is_admin:values.is_admin==='on'}),async()=>{if(u.id===me.user.id)location.reload();else await loadUsers();});}
+function userPasswordButton(u){const button=text('button','비밀번호 변경','secondary');button.type='button';button.onclick=()=>openUserPassword(u);return button;}
+let passwordTarget=null,passwordSaving=false;
+function openUserPassword(u){
+ if(passwordSaving||u.id!==me.user.id&&!me.user.is_admin)return;
+ const form=$('#user-password-form'),own=u.id===me.user.id;passwordTarget={id:u.id,name:u.name,login:u.login};form.reset();form.elements.password_confirm.setCustomValidity('');
+ $('#user-password-target').textContent=`${u.name} (${u.login})`;
+ $('#user-password-hint').textContent=own?'현재 비밀번호를 확인한 뒤 변경합니다. 변경 후 모든 기기에서 로그아웃되며 새 비밀번호로 다시 로그인하세요.':'Admin 권한으로 선택한 사용자의 비밀번호를 변경합니다. 해당 사용자는 모든 기기에서 로그아웃되며 새 비밀번호로 다시 로그인해야 합니다.';
+ $('#user-password-error').textContent='';$('#user-password-current-label').hidden=!own;form.elements.current.disabled=!own;form.elements.current.required=own;
+ $('#user-password-dialog').showModal();(own?form.elements.current:form.elements.password).focus();
+}
+for(const input of $('#user-password-form').querySelectorAll('input'))input.oninput=()=>$('#user-password-form').elements.password_confirm.setCustomValidity('');
+$('#user-password-dialog').addEventListener('close',()=>{passwordTarget=null;$('#user-password-form').reset();$('#user-password-form').elements.password_confirm.setCustomValidity('');});
+$('#user-password-form').onsubmit=async event=>{
+ event.preventDefault();if(passwordSaving||!passwordTarget)return;
+ const form=event.target,target=passwordTarget,own=target.id===me.user.id,button=$('#user-password-save');
+ if(form.elements.password.value!==form.elements.password_confirm.value){form.elements.password_confirm.setCustomValidity('새 비밀번호가 일치하지 않습니다.');form.elements.password_confirm.reportValidity();return;}
+ passwordSaving=true;button.disabled=true;$('#user-password-error').textContent='';
+ try{
+  await api(own?'security/password':`users/${target.id}/password`,{password:form.elements.password.value,...(own?{current:form.elements.current.value}:{})});
+  $('#user-password-dialog').close();
+  if(own)location.reload();else{await loadUsers();notice(target.name+'님의 비밀번호를 변경했습니다.');}
+ }catch(error){if($('#user-password-dialog').open)$('#user-password-error').textContent=error.message;else notice(error);}
+ finally{passwordSaving=false;button.disabled=false;}
+}
 
 document.addEventListener('open-project',event=>{selectedProjectId=event.detail;openPage('projects');});
 

@@ -1,7 +1,7 @@
 const $=s=>document.querySelector(s);let approvalBox='all',approvalPage=1,selectedTemplate=null,approvalInbox={count:0,documents:[]};let scheduleData={events:[],leaves:[]},scheduleRequest=0,scheduleEditing=null,schedulePeople=[],scheduleSelected=new Set(),scheduleRosterRequest=0;let reportTemplates=[],reportRows=[];let me,leaves=[],records=[],notices=[],expenses=[],drafts=[],draftTemplates=[],expensePage=1,documentPage=1,documentSort={key:"id",direction:-1};
 const statuses={manager:'이사 승인 대기',ceo:'대표이사 승인 대기',approved:'승인 완료',rejected:'반려',withdrawn:'회수'};
 const actions={approve:'승인',reject:'반려',withdraw:'회수',edit:'내용 수정',resubmit:'재상신'};
-const pages={leaveAdmin:'사용자 휴가 관리',sealSettings:'서명·도장 등록',reports:'업무보고',reportDraft:'업무보고 작성',home:'홈',projects:'프로젝트',customers:'고객사 관리',accounting:'회계 관리',users:'사용자 관리',approval:'전자결재',approvalSettings:'결재 운영 조회',draft:'신규기안',leave:'휴가 전자결재',expense:'지출결의서',attendance:'근태 관리',calendar:'일정관리',announcements:'공지사항',mail:'회사 메일',security:'계정 설정'};
+const pages={leaveAdmin:'사용자 휴가 관리',sealSettings:'서명·도장 등록',reports:'업무보고',reportDraft:'업무보고 작성',home:'홈',projects:'프로젝트',customers:'고객사 관리',accounting:'회계 관리',users:'사용자 관리',approval:'전자결재',approvalSettings:'결재 운영 조회',draft:'신규기안',leave:'휴가 전자결재',expense:'지출결의서',attendance:'근태 관리',calendar:'일정관리',announcements:'공지사항',mail:'회사 메일'};
 async function api(path,body){const r=await fetch('/api/'+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json();if(!r.ok)throw Error(d.error);return d;}
 function notice(e){$('#message').textContent=e.message||e;}
 function text(tag,value,cls){const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;return e;}
@@ -100,7 +100,6 @@ $('#logout').onclick=()=>run(async()=>{await api('logout',{});location.reload();
 for(const b of document.querySelectorAll('[data-tab],[data-open]'))b.onclick=()=>{openPage(b.dataset.tab||b.dataset.open);if(b.dataset.view){$('#leave-filter').value=b.dataset.view;documentPage=1;renderDocuments();}};
 $('#leave-filter').onchange=()=>{documentPage=1;renderDocuments();};$('#calendar-month').onchange=()=>run(loadCalendar);
 for(const action of ['in','out'])$('#clock-'+action).onclick=()=>run(async()=>{await api('attendance',{action});await refresh();notice('등록했습니다.');});
-$('#password-form').onsubmit=e=>{e.preventDefault();run(async()=>{await api('security/password',Object.fromEntries(new FormData(e.target)));location.reload();});};
 let installPrompt;window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('#install-app').hidden=false;});$('#install-app').onclick=()=>run(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#install-app').hidden=true;});window.addEventListener('appinstalled',()=>{$('#install-app').hidden=true;installPrompt=null;});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>notice('앱 설치 기능을 사용할 수 없습니다. 브라우저에서는 계속 이용할 수 있습니다.'));
 $('#export-month').value=$('#calendar-month').value=$('#home-calendar-month').value=today().slice(0,7);
@@ -218,7 +217,7 @@ $('#schedule-form [name=visibility]').onchange=event=>{if(event.target.value==='
 
 function templateName(id){return [...draftTemplates,...reportTemplates].find(t=>t.id===id)?.name||(id==='research_expense'?'지출결의서(연구개발비·기존)':id);}
 
-const workspaceThemes={leaveAdmin:'purple',home:'purple',reports:'purple',reportDraft:'purple',approval:'blue',draft:'blue',leave:'blue',expense:'blue',approvalSettings:'green',projects:'green',customers:'orange',accounting:'red',calendar:'cyan',attendance:'yellow',announcements:'red',mail:'blue',users:'green',security:'purple',sealSettings:'green'};
+const workspaceThemes={leaveAdmin:'purple',home:'purple',reports:'purple',reportDraft:'purple',approval:'blue',draft:'blue',leave:'blue',expense:'blue',approvalSettings:'green',projects:'green',customers:'orange',accounting:'red',calendar:'cyan',attendance:'yellow',announcements:'red',mail:'blue',users:'green',sealSettings:'green'};
 function setWorkspaceTheme(id){document.documentElement.dataset.theme=workspaceThemes[id]||'purple';for(const b of document.querySelectorAll('[data-tab],[data-open]'))b.dataset.moduleColor=workspaceThemes[b.dataset.tab||b.dataset.open]||'purple';}
 setWorkspaceTheme('home');
 

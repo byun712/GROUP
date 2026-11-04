@@ -27,6 +27,15 @@ test('announcement board searches all notices, paginates, counts real replies an
   for(const login of ['reader','soltec@elsoltec.com'])assert.equal((await call('announcements',login,{title:'무권한',content:'본문'})).status,403);
   for(const body of [{title:' ',content:'본문'},{title:'제목',content:' '},{title:'x'.repeat(121),content:'본문'}])assert.equal((await call('announcements','writer',body)).status,400);
   const first=(await call('announcements','writer',{title:'이전 공지 100%_검증',content:'<script>문자 그대로</script>\n둘째 줄'})).data.id;
+  const editBody={title:'이전 공지 100%_검증',content:'수정 본문',attachments:[{filename:'안내.txt',base64:Buffer.from('공지 첨부 내용').toString('base64')}]};
+  assert.equal((await call(`announcements/${first}/update`,'reader',editBody)).status,403);
+  assert.equal((await call(`announcements/${first}/update`,'writer',editBody)).status,200);
+  let edited=(await call(`announcements/${first}`,'reader')).data;assert.equal(edited.content,'수정 본문');assert.equal(edited.can_edit,false);assert.equal(edited.attachments.length,1);
+  assert.equal((await call(`announcements/${first}/update`,'soltec@elsoltec.com',{title:edited.title,content:edited.content,attachments:[{id:edited.attachments[0].id}]})).status,200);
+  edited=(await call(`announcements/${first}`,'reader')).data;
+  const download=await fetch(`${base}/api/announcements/${first}/attachments/${edited.attachments[0].id}`,{headers:{cookie:cookies.reader}});assert.equal(download.status,200);assert.match(download.headers.get('content-disposition'),/^attachment/);assert.equal(await download.text(),'공지 첨부 내용');
+  assert.equal((await fetch(`${base}/api/announcements/${first}/attachments/${edited.attachments[0].id}`)).status,401);
+  assert.equal((await call(`announcements/${first}/update`,'writer',{...editBody,attachments:[{id:999999}]})).status,400);
   for(let i=0;i<104;i++)assert.equal((await call('announcements','writer',{title:'공지 '+String(i).padStart(3,'0'),content:'검증 본문'})).status,201);
   assert.equal((await call('announcements','ceo',{title:'대표 안내',content:'직원 안내'})).status,201);
   const page=(await call('announcements/board','reader')).data;assert.equal(page.total,106);assert.equal(page.rows.length,10);assert.equal(page.pages,11);assert.ok(page.rows.every(r=>r.reply_count===0));assert.equal(page.rows[0].content,undefined);
@@ -40,7 +49,7 @@ test('announcement board searches all notices, paginates, counts real replies an
   assert.equal((await call('announcements/999999/replies','reader',{content:'없는 공지'})).status,404);
   for(const content of [' ', 'x'.repeat(2001),12])assert.equal((await call(`announcements/${first}/replies`,'reader',{content})).status,400);
   assert.equal((await call(`announcements/${first}/replies`,'reader',{author:ids.ceo,content:'직원 답변\n확인했습니다.'})).status,201);
-  let detail=(await call(`announcements/${first}`,'reader')).data;assert.equal(detail.content,'<script>문자 그대로</script>\n둘째 줄');assert.equal(detail.reply_count,1);assert.equal(detail.replies[0].author,ids.reader);assert.equal(detail.replies[0].content,'직원 답변\n확인했습니다.');
+  let detail=(await call(`announcements/${first}`,'reader')).data;assert.equal(detail.content,'수정 본문');assert.equal(detail.reply_count,1);assert.equal(detail.replies[0].author,ids.reader);assert.equal(detail.replies[0].content,'직원 답변\n확인했습니다.');
   assert.equal((await call('announcements/board?q=100%25_','writer')).data.rows[0].reply_count,1);
   assert.equal((await call(`users/${ids.reader}/delete`,'soltec@elsoltec.com',{confirm_login:'reader'})).status,200);detail=(await call(`announcements/${first}`,'writer')).data;assert.equal(detail.reply_count,0);assert.equal(detail.replies.length,0);
   await call(`announcements/${first}/replies`,'ceo',{content:'대표 답변'});

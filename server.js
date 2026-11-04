@@ -1,4 +1,5 @@
 import {pdfAsset} from './pdf-assets.js';
+import {initializeAnnouncements,announcementApi} from './announcements.js';
 import {expenseAttachmentApi} from './expense-attachments.js';
 import {initializeDocumentWorkflow,documentPermissions} from './document-state.js';
 import {documentWorkflowApi} from './document-workflow.js';
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER REFER
 CREATE TABLE IF NOT EXISTS leave_requests(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id),kind TEXT NOT NULL,start TEXT NOT NULL,end TEXT NOT NULL,reason TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'manager',created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS decisions(id INTEGER PRIMARY KEY,leave_id INTEGER REFERENCES leave_requests(id),actor INTEGER REFERENCES users(id),action TEXT NOT NULL,created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS attendance(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id),day TEXT NOT NULL,clock_in TEXT NOT NULL,clock_out TEXT,ip TEXT NOT NULL,UNIQUE(user_id,day));`);
-db.exec(`CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,author INTEGER NOT NULL REFERENCES users(id),title TEXT NOT NULL,content TEXT NOT NULL,created TEXT NOT NULL);`);
+initializeAnnouncements(db);
 initializeExpenses(db);
 initializeApprovals(db);
 initializeSchedules(db);
@@ -104,12 +105,7 @@ if(path==='/api/security/password'&&req.method==='POST'){
 }
 if(path==='/api/me'&&req.method==='GET')return send(200,{user,officeAllowed:ipOf(req)===office,mailAllowed:user.role==='manager'});
 if(path==='/api/logout'&&req.method==='POST'){db.prepare('DELETE FROM sessions WHERE token=?').run(cookie(req));res.setHeader('Set-Cookie','session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(200,{ok:true});}
-if(path==='/api/announcements'&&req.method==='GET')return send(200,db.prepare('SELECT a.*,u.name FROM announcements a JOIN users u ON u.id=a.author ORDER BY a.id DESC LIMIT 100').all());
-if(path==='/api/announcements'&&req.method==='POST'){
- if(!['manager','ceo'].includes(user.role))return send(403,{error:'이사와 대표이사만 공지를 작성할 수 있습니다'});
- const {title,content}=body;if(typeof title!=='string'||!title.trim()||title.length>120||typeof content!=='string'||!content.trim()||content.length>8000)return send(400,{error:'제목(120자 이내)과 내용(8000자 이내)을 입력하세요'});
- db.prepare('INSERT INTO announcements(author,title,content,created) VALUES(?,?,?,?)').run(user.id,title.trim(),content.trim(),new Date().toISOString());return send(201,{ok:true});
-}
+if(path==='/api/announcements'||path.startsWith('/api/announcements/'))return announcementApi(db,path,req.method,user,body,send,new URL(req.url,'http://localhost'));
 if(path==='/api/calendar'&&req.method==='GET'){
  const month=new URL(req.url,'http://localhost').searchParams.get('month');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))return send(400,{error:'조회 월을 확인하세요'});
  const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10);

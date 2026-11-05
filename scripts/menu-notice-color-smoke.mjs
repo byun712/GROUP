@@ -22,10 +22,13 @@ try{
   const homeSizes=await dimensions();
   for(const key of keys){await page.locator(`.app-launcher [data-open=${key}]`).click();await page.mouse.move(0,0);assert.deepEqual(await dimensions(),homeSizes,`launcher dimensions: ${key}`);}
   await page.locator('.app-launcher [data-open=approval]').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
+  const contentBefore=await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};});
   await page.locator('#new-draft').click();assert.equal(await page.locator('#draft-menu').isVisible(),true);
+  const sideButton=await page.locator('#new-draft').boundingBox(),sideMenu=await page.locator('#draft-menu').boundingBox();assert.ok(sideMenu.x>=sideButton.x+sideButton.width);assert.deepEqual(await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};}),contentBefore);
   await page.locator('#new-draft').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
+  await page.locator('#approval-new-draft').click();assert.equal(await page.locator('#approval-new-draft').innerText(),'신규기안 작성 ▾');const headerButton=await page.locator('#approval-new-draft').boundingBox(),headerMenu=await page.locator('#draft-menu').boundingBox();assert.ok(headerMenu.x>sideButton.x+sideButton.width);assert.ok(headerMenu.y>=headerButton.y+headerButton.height);await page.locator('#draft-menu button').first().click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
   await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),false);
-  await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),true);
+  const userContent=await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};});await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),true);const userButton=await page.locator('.sidebar [data-tab=users]').boundingBox(),userMenu=await page.locator('#users-submenu').boundingBox();assert.ok(userMenu.x>=userButton.x+userButton.width);assert.deepEqual(await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};}),userContent);
   await page.locator('.app-launcher [data-open=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),false);
  }
  await page.setViewportSize({width:1440,height:1000});await page.locator('.sidebar [data-tab=home]').click();

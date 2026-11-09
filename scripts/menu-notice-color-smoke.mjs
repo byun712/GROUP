@@ -52,10 +52,10 @@ try{
  await page.keyboard.press('Escape');
  await page.evaluate(async()=>{const post=async(path,body)=>{const r=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw Error(await r.text());return r.json();};const day=today(),p=await post('projects',{title:'회색 프로젝트',color:'#68717d',start_date:day,end_date:day,description:''});await post('schedules',{title:'연결 일정',project_id:p.id,start_date:day,end_date:day,all_day:true,visibility:'company'});});
  await page.locator('.sidebar [data-tab=calendar]').click();const chip=page.locator('#calendar-grid .calendar-event').filter({hasText:'연결 일정'});await chip.waitFor();
- assert.equal(await chip.evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(104, 113, 125)');assert.equal(await chip.evaluate(e=>getComputedStyle(e).color),'rgb(255, 255, 255)');
+ assert.equal(await chip.evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');assert.equal(await chip.evaluate(e=>getComputedStyle(e).color),'rgb(34, 34, 34)');assert.equal(await chip.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(104, 113, 125)');assert.match(await chip.evaluate(e=>getComputedStyle(e,'::before').backgroundImage),/104, 113, 125/);
  await page.locator('.sidebar [data-tab=projects]').click();await page.locator('#project-cards').getByText('회색 프로젝트',{exact:true}).click();
  assert.equal(await page.locator('.project-color-swatch').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(104, 113, 125)');
- const projectChip=page.locator('#project-task-board .project-schedule-event');await projectChip.waitFor();assert.equal(await projectChip.first().evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(104, 113, 125)');
- await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ const projectChip=page.locator('#project-task-board .project-schedule-event');await projectChip.waitFor();assert.equal(await projectChip.first().evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(104, 113, 125)');
+ await page.screenshot({path:'/tmp/group-calendar-labels.png',fullPage:true});await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  assert.deepEqual(errors,[]);console.log('PASS: menu order, square shortcuts, notice editor/upload/download/edit, project/calendar colors, mobile width');
 }finally{await browser?.close();await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}

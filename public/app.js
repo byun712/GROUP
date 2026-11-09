@@ -3,7 +3,7 @@ const statuses={manager:'이사 승인 대기',ceo:'대표이사 승인 대기',
 const actions={approve:'승인',reject:'반려',withdraw:'회수',edit:'내용 수정',resubmit:'재상신'};
 const pages={leaveAdmin:'사용자 휴가 관리',sealSettings:'서명·도장 등록',reports:'업무보고',reportDraft:'업무보고 작성',home:'홈',projects:'프로젝트',customers:'고객관리',accounting:'세무회계',users:'사용자',approval:'전자결재',approvalSettings:'결재 운영 조회',draft:'신규기안',leave:'휴가 전자결재',expense:'지출결의서',attendance:'근태관리',calendar:'일정관리',announcements:'공지사항',mail:'전자메일'};
 async function api(path,body){const r=await fetch('/api/'+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json();if(!r.ok)throw Error(d.error);return d;}
-function applyProjectColor(node,color){if(!/^#[0-9a-fA-F]{6}$/.test(color||''))return;node.style.backgroundColor=color;const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);node.style.color=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>.179?'#111111':'#ffffff';}
+function applyProjectColor(node,color){if(!/^#[0-9a-fA-F]{6}$/.test(color||''))return;if(node.classList.contains('calendar-event')){node.style.setProperty('--calendar-event-color',color);return;}node.style.backgroundColor=color;const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);node.style.color=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>.179?'#111111':'#ffffff';}
 function notice(e){$('#message').textContent=e.message||e;}
 function text(tag,value,cls){const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;return e;}
 const time=s=>s?new Date(s).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'—';

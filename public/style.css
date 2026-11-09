@@ -159,3 +159,10 @@ button,input,select,textarea,option,optgroup,pre,code,kbd,samp{font-family:inher
 @media(max-width:700px){#mail .mail-workspace{grid-template-columns:1fr}#mail-compose-dialog .mail-form{padding:12px}#mail-compose-dialog .mail-form>label{grid-template-columns:1fr;gap:5px}#mail-signature-preview{margin-left:0}#mail-reader{padding:14px}#mail-reader h3{font-size:17px}}
 
 #mail-compose-dialog .dialog-title>button{font-size:12px;font-weight:500;padding:6px 12px;border:1px solid var(--accent-border);border-radius:5px;background:white}#mail-reader .mail-attachment{display:inline-block;margin:6px 8px 6px 0;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#f8fafc}
+
+/* Calendar entries: a color tab and a fine top rule on a white label. */
+.calendar-event.event-company{--calendar-event-color:#246cad}.calendar-event.event-personal{--calendar-event-color:#82358e}.calendar-event.event-participants{--calendar-event-color:#ffbf00}.calendar-event.event-leave{--calendar-event-color:#547e23}
+.calendar-grid .calendar-event,.home-day-event>.calendar-event{position:relative;isolation:isolate;box-sizing:border-box;background:#fff;color:#222;border:0;border-top:1px solid var(--calendar-event-color,#ffbf00);border-radius:0;box-shadow:none;text-align:left;padding:3px 6px 3px 25px;min-height:24px;font-size:11px;line-height:1.5;font-weight:400}
+.calendar-grid .calendar-event::before,.home-day-event>.calendar-event::before{content:"";position:absolute;left:0;top:-1px;bottom:0;width:20px;background:linear-gradient(to right,var(--calendar-event-color,#ffbf00) 0%,var(--calendar-event-color,#ffbf00) 65%,#fff 100%);pointer-events:none}
+.calendar-grid button.calendar-event:hover,.home-day-event>button.calendar-event:hover{background:#f7f9fc;color:#111}.calendar-grid button.calendar-event:focus-visible,.home-day-event>button.calendar-event:focus-visible{outline:2px solid var(--calendar-event-color,#ffbf00);outline-offset:2px}
+#home-calendar-grid .calendar-event{padding-left:19px;padding-right:3px;min-height:18px}#home-calendar-grid .calendar-event::before{width:15px}.home-day-event>.calendar-event{padding-left:25px}

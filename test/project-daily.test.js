@@ -15,7 +15,7 @@ test('daily completion is independent, cumulative, versioned, and recalculated o
  const project=(await call('projects',owner,{title:'일자별 프로젝트',start_date:'2026-11-01',end_date:'2026-12-31',description:''})).data.id;
  const task=(await call(`projects/${project}/tasks`,owner,{title:'설계',assignee_id:1,start_date:'2026-11-01',end_date:'2026-11-04'})).data.id;
  const get=async()=> (await call('projects',owner)).data.find(p=>p.id===project);
- let p=await get();assert.equal(p.tasks[0].total_days,4);assert.equal(p.history.length,1);
+ let p=await get();assert.equal(p.tasks[0].total_days,4);assert.equal(p.history.length,1);const created=p.tasks[0].created;assert.equal(created,p.history[0].created);
  for(const [date,version,progress] of [['2026-11-01',1,25],['2026-11-02',2,50]]){assert.equal((await call(`project-tasks/${task}/completion`,other,{date,completed:true,version})).status,200);p=await get();assert.equal(p.tasks[0].progress,progress);}
  assert.deepEqual(p.tasks[0].completed_dates,['2026-11-01','2026-11-02']);assert.equal(p.history.length,1);
  assert.equal((await call(`project-tasks/${task}/completion`,owner,{date:'2026-11-03',completed:true,version:1})).status,409);
@@ -33,7 +33,7 @@ test('daily completion is independent, cumulative, versioned, and recalculated o
  p=await get();assert.equal(p.tasks[0].progress,20);assert.deepEqual(p.tasks[0].completed_dates,['2026-11-02']);
  let version=7;for(const date of ['2026-11-01','2026-11-03','2026-11-04','2026-11-05'])assert.equal((await call(`project-tasks/${task}/completion`,owner,{date,completed:true,version:version++})).status,200);
  p=await get();assert.equal(p.tasks[0].progress,100);assert.equal(p.tasks[0].status,'done');assert.equal(p.tasks[0].completed_days,5);assert.equal(p.history.length,5);
- assert.equal((await call(`project-tasks/${task}/update`,other,{end_date:'2026-11-06',change_reason:'추가 검증일',version})).status,200);p=await get();assert.equal(p.tasks[0].progress,83);assert.equal(p.tasks[0].status,'doing');
+ assert.equal((await call(`project-tasks/${task}/update`,other,{end_date:'2026-11-06',change_reason:'추가 검증일',version})).status,200);p=await get();assert.equal(p.tasks[0].created,created);assert.equal(p.tasks[0].progress,83);assert.equal(p.tasks[0].status,'doing');
  assert.equal((await call(`project-tasks/${task}/completion`,'',{date:'2026-11-06',completed:true,version:version+1})).status,401);
  } finally {await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}
 });

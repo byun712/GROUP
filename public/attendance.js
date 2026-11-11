@@ -12,5 +12,7 @@ $('#attendance-user').onchange=()=>{attendanceUserId=Number($('#attendance-user'
 $('#export-month').onchange=()=>run(loadAttendanceCalendar);
 for(const [id,offset] of [['attendance-prev',-1],['attendance-next',1]])$('#'+id).onclick=()=>{const [year,month]=$('#export-month').value.split('-').map(Number),date=new Date(Date.UTC(year,month-1+offset,1));if(date.getUTCFullYear()<1000||date.getUTCFullYear()>9999)return;$('#export-month').value=date.toISOString().slice(0,7);run(loadAttendanceCalendar);};
 $('#attendance-today').onclick=()=>{$('#export-month').value=today().slice(0,7);run(loadAttendanceCalendar);};
-document.addEventListener('groupware-ready',()=>{attendanceRequest++;attendanceData=null;attendanceUserId=me.user.id;});
+document.addEventListener('groupware-ready',()=>{attendanceRequest++;$('#records').hidden=true;$('#attendance-details-toggle').setAttribute('aria-expanded','false');$('#attendance-details-toggle').textContent='근태 상세 내역 보기 ▼';attendanceData=null;attendanceUserId=me.user.id;});
 document.addEventListener('workspace-page',event=>{if(event.detail==='attendance')run(loadAttendanceCalendar);});
+
+$('#attendance-details-toggle').onclick=()=>{const expanded=$('#records').hidden;$('#records').hidden=!expanded;$('#attendance-details-toggle').setAttribute('aria-expanded',String(expanded));$('#attendance-details-toggle').textContent=expanded?'근태 상세 내역 접기 ▲':'근태 상세 내역 보기 ▼';};

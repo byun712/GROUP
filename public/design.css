@@ -53,3 +53,55 @@ button{border-radius:7px;font-weight:600;transition:background .16s,box-shadow .
 #approval .template-cards button:hover,#reports .template-cards button:hover{background:var(--accent-soft);border-color:var(--accent);transform:translateY(-1px)}
 @media(max-width:1150px){.project-workboard-top{grid-template-columns:1fr}.project-workboard-top #project-history{max-height:300px}}
 @media(max-width:650px){#approval .document-filters>label,#reports .document-filters>label,#approval .document-filters>label:nth-child(2),#reports .document-filters>label:nth-child(2){flex:1 1 100%;max-width:none}.project-workboard-top #project-overview{padding:20px}.project-workboard-top .task-summary-heading{align-items:center;flex-wrap:nowrap}}
+
+/* Workboard: equal-purpose surfaces share a bounded layout. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+:root .app-launcher{margin-bottom:16px}
+:root .app-launcher button.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);box-shadow:inset 0 -3px var(--accent)}
+:root .app-launcher button.active span{background:var(--accent);color:white}
+:root .app-launcher button:not(.active){color:#536276;background:white}
+:root .app-launcher button:not(.active) span{background:#f1f5f9;color:#536276}
+:root .app-launcher button:hover{border-color:var(--accent);background:#f1f5f9;transform:translateY(-1px)}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:3px solid #246cad;outline-offset:3px}
+:root .project-workboard-top{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.15fr);gap:16px;margin-bottom:24px}
+:root .project-workboard-top>#project-overview,:root .project-workboard-top>.panel{height:382px;padding:16px;margin:0;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 2px 8px #23344a06;min-width:0;overflow:hidden}
+:root .project-workboard-top #project-overview{gap:16px;flex-wrap:wrap;align-content:center;justify-content:center;overflow:auto}
+:root .project-workboard-top .panel-heading{height:40px;margin:0 0 12px;gap:8px;flex-wrap:nowrap;align-items:center}
+:root .project-workboard-top h2{font-size:16px;margin:0;white-space:nowrap}
+:root .project-workboard-top .panel-heading button{font-size:13px;padding:8px;white-space:nowrap}
+:root .project-overview-copy{flex:1 1 150px;min-width:0}
+:root .project-summary-heading h3{font-size:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+:root .project-overview-copy>small{font-size:12px;margin-top:12px;color:#64748b}
+.overview-period{font-size:13px;margin:12px 0;color:#475569}.overview-caption{color:#475569;margin:12px 0}
+:root .project-workboard-top #project-history{height:296px;max-height:none;overflow-y:auto;padding:0;scrollbar-gutter:auto;display:flex;flex-direction:column;gap:12px}
+:root .project-workboard-top #project-history .work-card{height:108px;min-height:108px;flex-shrink:0;margin:0;padding:12px;border:1px solid #e2e8f0;display:flex;flex-direction:column;gap:8px}
+:root #project-history .task-summary-heading{display:flex;align-items:center;gap:8px;min-width:0}
+:root #project-history .work-card-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;font-size:14px;line-height:24px}
+:root #project-history .work-card p{margin:0;line-height:18px;font-size:12px;min-height:36px;-webkit-line-clamp:2;color:#526174}
+:root #project-history .project-progress-bar{margin:0;height:4px;min-height:4px}
+:root #project-timeline-panel>small{font-size:12px;color:#64748b;display:block;margin-bottom:12px}
+#project-timeline{height:264px;overflow:auto;padding:0 4px 0 16px;border-left:2px solid #e2e8f0;display:flex;flex-direction:column;gap:12px}
+.timeline-node{flex-shrink:0;display:grid;gap:4px;width:100%;text-align:left;padding:12px;border:1px solid #dbe2ea;border-radius:8px;background:#f8fafc;color:#334155;position:relative}
+.timeline-node strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.timeline-node span,.timeline-node small{font-size:12px;color:inherit}
+.timeline-node.task-doing{border:2px solid var(--accent);background:var(--accent-soft)}.timeline-node.task-done{background:#f0f7ec;border-color:#8fab79;color:#38571f}.timeline-node.task-blocked{background:#fff8e8;border-color:#b68c35}
+:root #project-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-height:356px;overflow:auto;padding:2px}
+:root #project-cards .work-card,:root #project-cards .work-card.selected{height:164px;min-height:164px;padding:16px;border-width:1px;display:flex;flex-direction:column;gap:8px}
+:root #project-cards .work-card p{margin:0;white-space:pre-line;line-height:20px;height:40px;overflow:hidden;color:#526174}
+:root #project-cards .work-card>strong{margin:0}:root #project-cards .project-progress-bar{margin-top:auto}
+:root #project-cards .work-card-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+:root .task-calendar-item{display:flex;align-items:center;gap:4px;min-width:0;margin:4px 0}
+:root .task-complete-label{flex:0 0 auto;margin:0;padding:0;display:flex;align-items:center}
+:root .task-complete-label input{width:16px;height:16px;margin:0;cursor:pointer}
+:root .task-calendar-item .task-event{flex:1;min-width:0;width:auto;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 6px}
+:root .attendance-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+:root .attendance-toolbar .inline-form{margin:0;gap:12px;flex-wrap:wrap}
+:root .attendance-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:root .attendance-actions>span{font-size:13px;color:#475569}
+:root .attendance-toolbar button{min-height:36px;height:36px;padding:6px 12px;font-size:13px}
+:root #attendance-action-status{padding:0;background:none;font-size:13px;color:#475569;margin:12px 0}
+:root .attendance-day-record{grid-template-rows:20px 20px;gap:4px}
+:root #attendance-details-toggle{width:100%;margin-top:16px;min-height:44px;text-align:center}
+:root #records:not([hidden]){margin-top:16px}
+@media(min-width:1151px) and (max-width:1500px){:root .project-workboard-top #project-overview{flex-direction:column;flex-wrap:nowrap;gap:12px}:root .project-overview-copy{flex:0 1 auto;width:100%}:root .project-donut{width:130px;height:130px}:root .project-donut-center{width:100px;height:100px}:root .project-donut-center strong{font-size:28px}:root .project-overview-copy>small{margin-top:8px}}
+@media(max-width:1150px){:root .project-workboard-top{grid-template-columns:1fr}:root .project-workboard-top>#project-overview{height:auto;min-height:240px}:root #project-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){:root #project-cards{grid-template-columns:1fr;max-height:356px}:root .project-workboard-top{gap:16px}:root .attendance-toolbar form{width:100%}:root .attendance-toolbar .compact{min-width:0;flex:1}:root .attendance-toolbar select,:root .attendance-toolbar input{width:100%;min-width:0}:root .attendance-toolbar button{height:auto;min-height:44px}:root .attendance-actions>span{width:100%}:root .attendance-calendar,:root .project-calendar{min-width:0}:root .attendance-calendar .calendar-cell,:root .project-calendar .calendar-cell{min-width:0;padding:4px 2px}:root .attendance-day-record{padding:4px 0;grid-template-rows:auto auto}:root .attendance-day-record span,:root .attendance-day-record small{font-size:11px;overflow-wrap:anywhere}:root .task-calendar-item{gap:2px}:root .task-calendar-item .task-event{padding:4px 2px}:root .task-complete-label input{width:14px;height:14px}}

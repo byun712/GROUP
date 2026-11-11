@@ -14,3 +14,5 @@ for(const [id,offset] of [['attendance-prev',-1],['attendance-next',1]])$('#'+id
 $('#attendance-today').onclick=()=>{$('#export-month').value=today().slice(0,7);run(loadAttendanceCalendar);};
 document.addEventListener('groupware-ready',()=>{attendanceRequest++;attendanceData=null;attendanceUserId=me.user.id;});
 document.addEventListener('workspace-page',event=>{if(event.detail==='attendance')run(loadAttendanceCalendar);});
+
+$('#attendance-details-toggle').onclick=()=>{const records=$('#records'),expanded=records.hidden;records.hidden=!expanded;$('#attendance-details-toggle').setAttribute('aria-expanded',String(expanded));$('#attendance-details-toggle').textContent=expanded?'근태 상세 내역 접기 ▲':'근태 상세 내역 보기 ▼';};

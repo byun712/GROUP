@@ -24,16 +24,23 @@ function renderProjectOverview(){
  chart.style.background=`conic-gradient(${project.color} 0% ${progress}%, #e8edf3 ${progress}% 100%)`;
  chart.setAttribute('aria-label',`${project.title} · 프로젝트 진척률 ${progress}% · 완료 ${done} / 전체 ${total}개 공정`);
  const summary=text('div','','project-overview-copy'),heading=text('div','','project-summary-heading'),swatch=text('span','','project-color-swatch');swatch.style.backgroundColor=project.color;
- heading.append(swatch,text('h3',project.title));summary.append(text('p','SELECTED PROJECT','overview-eyebrow'),heading,text('span',projectStates[project.status],'badge project-status-'+project.status),text('p',total?`진척률 ${progress}% · 완료 ${done} / 전체 ${total}개 공정`:'등록된 공정 없음','overview-caption'),text('small','공정별 진척률의 평균 · 날짜별 완료 체크 반영'));target.replaceChildren(chart,summary);
+ heading.append(swatch,text('h3',project.title));summary.append(text('p','SELECTED PROJECT','overview-eyebrow'),heading,text('span',projectStates[project.status],'badge project-status-'+project.status),text('p',project.start_date+' ~ '+project.end_date,'project-summary-dates'),text('p',total?`진척률 ${progress}% · 완료 ${done} / 전체 ${total}개 공정`:'등록된 공정 없음','overview-caption'),text('small','공정별 진척률의 평균 · 날짜별 완료 체크 반영'));target.replaceChildren(chart,summary);
 }
+let historyProject=null,historyNewest=null;
 function renderProjectHistory(project){
- const history=$('#project-history');history.replaceChildren();
- for(const task of project?.tasks||[]){
+ const history=$('#project-history'),scrollTop=history.scrollTop;history.replaceChildren();
+ for(const task of [...(project?.tasks||[])].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))||b.id-a.id)){
   const meta=`${task.start_date} ~ ${task.end_date} · ${task.assignee} · 참여자: ${(task.participants||[]).map(u=>u.name).join(', ')||'없음'} · ${task.completed_days}/${task.total_days}일 완료`;
   const row=bcard(task.title,meta,()=>showTaskHistory(task,project)),title=row.querySelector('.work-card-title'),heading=text('div','','task-summary-heading');title.title=task.title;
   heading.append(title,text('strong',`진척률 ${task.progress}%`,'task-progress-label'));row.prepend(heading);row.querySelector('p').title=meta;row.dataset.taskHistory=task.id;row.append(projectProgressBar(task.progress,task.title+' 달성도'));history.append(row);
  }
- emptyCards(history,project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.');
+ emptyCards(history,project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.');const newest=history.firstElementChild?.dataset.taskHistory;history.scrollTop=historyProject===project?.id&&historyNewest===newest?scrollTop:0;historyProject=project?.id;historyNewest=newest;
+}
+function renderProjectTimeline(project){
+ const target=$('#project-timeline');target.replaceChildren();
+ const tasks=[...(project?.tasks||[])].sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.end_date.localeCompare(b.end_date)||a.id-b.id);
+ for(const task of tasks){const row=text('button','','timeline-node timeline-'+task.status);row.type='button';row.dataset.timelineTask=task.id;const title=text('strong',(task.status==='done'?'✓ ':'')+task.title);row.append(title,text('span',task.start_date+' ~ '+task.end_date),text('span',(task.status==='todo'?'예정':taskStates[task.status])+' · '+task.progress+'%','timeline-status'));row.onclick=()=>showTaskHistory(task,project);target.append(row);}
+ emptyCards(target,project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.');
 }
 function renderProjects(){
  renderProjectOverview();
@@ -47,13 +54,13 @@ function renderProjects(){
   if(p.id===selectedProjectId)card.classList.add('selected');target.append(card);
  }
  emptyCards(target,'프로젝트를 등록하고 공정을 관리하세요.');
- const p=businessProjects.find(p=>p.id===selectedProjectId);$('#project-detail').hidden=!p;renderProjectHistory(p);if(!p)return;
+ const p=businessProjects.find(p=>p.id===selectedProjectId);$('#project-detail').hidden=!p;renderProjectHistory(p);renderProjectTimeline(p);$('#project-edit').disabled=!p;$('#project-task-new').disabled=!p;if(!p)return;
  $('#project-title').textContent=p.title;$('#project-meta').textContent=`${p.company||'내부 업무'} · ${p.start_date} ~ ${p.end_date}\n등록자 ${p.owner} · 담당자 ${p.manager||p.owner} · 참여자: ${(p.participants||[]).map(u=>u.name).join(', ')||'없음'}${p.description?'\n'+p.description:''}`;
  $('#project-status').value=p.status;$('#project-status').disabled=false;$('#project-status-save').hidden=false;$('#project-task-new').hidden=false;
  const changes=$('#project-change-list');changes.replaceChildren();$('#project-changes').hidden=!(p.changes||[]).length;
  for(const change of p.changes||[])changes.append(text('small',`${change.action==='status'?'프로젝트 상태 변경':'프로젝트 정보 수정'} · ${change.actor_name} · ${time(change.created)}`));
  const month=$('#project-month').value,[year,m]=month.split('-').map(Number);const grid=$('#project-task-board');grid.replaceChildren();if(!year||!m)return;const days=new Date(Date.UTC(year,m,0)).getUTCDate(),first=new Date(Date.UTC(year,m-1,1)).getUTCDay();for(const name of ['일','월','화','수','목','금','토'])grid.append(text('div',name,'calendar-cell calendar-day'));for(let i=0;i<first;i++)grid.append(text('div','','calendar-cell blank'));
- for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),cell=text('div','','calendar-cell'+(date===today()?' today':'')),button=text('button',String(day),'calendar-date');button.setAttribute('aria-label',date+' 공정 등록');button.disabled=date<p.start_date||date>p.end_date;button.onclick=()=>createTask(date);cell.append(button);for(const task of p.tasks.filter(t=>t.start_date<=date&&t.end_date>=date)){const chip=text('button',`${task.title} · ${task.progress}%`,'calendar-event task-event task-'+task.status);chip.title=`${task.assignee} · 참여자 ${(task.participants||[]).map(u=>u.name).join(', ')||'없음'} · ${taskStates[task.status]} · ${task.start_date} ~ ${task.end_date}`;applyProjectColor(chip,p.color);chip.onclick=()=>editTask(task,date);const item=text('div','','task-calendar-item'),label=text('label','','task-complete-label'),check=document.createElement('input');check.type='checkbox';check.checked=task.completed_dates.includes(date);check.dataset.taskComplete=task.id;check.setAttribute('aria-label',`${task.title} 완료 (${date})`);check.disabled=pendingTaskChecks.has(task.id);check.onchange=()=>run(()=>toggleTaskComplete(task,date,check.checked));label.append(check,text('span','완료'));item.append(label,chip);cell.append(item);}for(const event of (p.schedule_events||[]).filter(e=>e.start_date<=date&&e.end_date>=date)){const chip=text('button','일정 · '+event.title,'calendar-event project-schedule-event');applyProjectColor(chip,event.project_color||p.color);chip.onclick=()=>openSchedule(event);cell.append(chip);}grid.append(cell);}for(let i=0;i<(7-(first+days)%7)%7;i++)grid.append(text('div','','calendar-cell blank'));
+ for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),cell=text('div','','calendar-cell'+(date===today()?' today':'')),button=text('button',String(day),'calendar-date');button.setAttribute('aria-label',date+' 공정 등록');button.disabled=date<p.start_date||date>p.end_date;button.onclick=()=>createTask(date);cell.append(button);for(const task of p.tasks.filter(t=>t.start_date<=date&&t.end_date>=date)){const chip=text('button',task.title,'calendar-event task-event task-'+task.status);chip.title=`${task.assignee} · 참여자 ${(task.participants||[]).map(u=>u.name).join(', ')||'없음'} · ${taskStates[task.status]} · ${task.start_date} ~ ${task.end_date}`;applyProjectColor(chip,p.color);chip.onclick=()=>editTask(task,date);const item=text('div','','task-calendar-item'),label=text('label','','task-complete-label'),check=document.createElement('input');check.type='checkbox';check.checked=task.completed_dates.includes(date);check.dataset.taskComplete=task.id;check.setAttribute('aria-label',`${task.title} 완료 (${date})`);check.disabled=pendingTaskChecks.has(task.id);check.onchange=()=>run(()=>toggleTaskComplete(task,date,check.checked));label.append(check);item.append(label,chip);cell.append(item);}for(const event of (p.schedule_events||[]).filter(e=>e.start_date<=date&&e.end_date>=date)){const chip=text('button','일정 · '+event.title,'calendar-event project-schedule-event');applyProjectColor(chip,event.project_color||p.color);chip.onclick=()=>openSchedule(event);cell.append(chip);}grid.append(cell);}for(let i=0;i<(7-(first+days)%7)%7;i++)grid.append(text('div','','calendar-cell blank'));
 
 }
 function projectWorkDate(entry){return entry.work_date||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(entry.created));}

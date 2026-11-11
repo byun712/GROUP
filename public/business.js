@@ -11,45 +11,50 @@ function initializeBusinessUI(){if(typeof me==='undefined'||!me)return;for(const
 document.addEventListener('groupware-ready',initializeBusinessUI);if(typeof me!=='undefined'&&me)initializeBusinessUI();
 document.addEventListener('workspace-page',event=>{const page=event.detail;if(page==='projects')run(loadProjects);else if(page==='customers')run(loadCustomers);else if(page==='accounting')run(loadAccounting);else if(page==='users')run(loadUsers);});
 
-async function loadProjects(){[businessProjects,businessCustomers,businessPeople]=await Promise.all([api('projects'),api('customers'),api('people')]);if(!businessProjects.some(p=>p.id===selectedProjectId)){const first=businessProjects[0];selectedProjectId=first?.id||null;if(first)$('#project-month').value=(today()>=first.start_date&&today()<=first.end_date?today():first.start_date).slice(0,7);}renderProjects();}
+let projectLoadRequest=0;
+async function loadProjects(){const request=++projectLoadRequest,result=await Promise.all([api('projects'),api('customers'),api('people')]);if(request!==projectLoadRequest)return;[businessProjects,businessCustomers,businessPeople]=result;if(!businessProjects.some(p=>p.id===selectedProjectId)){const first=businessProjects[0];selectedProjectId=first?.id||null;if(first)$('#project-month').value=(today()>=first.start_date&&today()<=first.end_date?today():first.start_date).slice(0,7);}renderProjects();}
 function projectProgressBar(value,label){const bar=document.createElement('progress');bar.className='project-progress-bar';bar.max=100;bar.value=value;bar.setAttribute('aria-label',label);return bar;}
+// Reuse the existing arithmetic mean of server-calculated task progress everywhere.
+function projectProgress(project){return project.tasks.length?Math.round(project.tasks.reduce((sum,task)=>sum+task.progress,0)/project.tasks.length):0;}
 function renderProjectOverview(){
- const target=$('#project-overview'),tasks=businessProjects.flatMap(p=>p.tasks),total=tasks.length;
- const average=total?Math.round(tasks.reduce((n,t)=>n+t.progress,0)/total):0;
- const groups=[['done','완료','#58a58b'],['doing','진행 중','#7199d1'],['todo','대기','#d6deea'],['blocked','보류','#d7ad72']];
- const chart=text('div','','project-donut'),center=text('div','','project-donut-center');center.append(text('strong',average+'%'),text('span',total?'전체 진척률':'등록된 공정 없음'));chart.append(center);chart.setAttribute('role','img');
- let angle=0;const segments=[],summary=text('div','','project-overview-copy'),legend=text('div','','project-chart-legend');summary.append(text('p','PROJECT OVERVIEW','overview-eyebrow'),text('h3','프로젝트 진행 현황'),text('p',`프로젝트 ${businessProjects.length}개 · 전체 공정 ${total}개`,'overview-caption'));
- const labels=[];for(const [status,label,color] of groups){const count=tasks.filter(t=>t.status===status).length,next=angle+(total?count/total*360:0);segments.push(`${color} ${angle}deg ${next}deg`);angle=next;const item=text('div','','project-chart-key'),dot=text('i');dot.style.backgroundColor=color;item.append(dot,text('span',label),text('strong',count+'개'));legend.append(item);labels.push(label+' '+count+'개');}
- chart.style.background=total?'conic-gradient('+segments.join(',')+')':'#e8edf3';chart.setAttribute('aria-label',`전체 진척률 ${average}%, ${labels.join(', ')}`);summary.append(legend,text('small','원형: 공정 상태별 개수 비중 · 중앙: 전체 공정 진척률의 평균'));target.replaceChildren(chart,summary);
+ const target=$('#project-overview'),project=businessProjects.find(p=>p.id===selectedProjectId);
+ if(!project){target.replaceChildren(text('p','프로젝트를 등록하면 진척률을 확인할 수 있습니다.','empty'));return;}
+ const tasks=project.tasks,total=tasks.length,progress=projectProgress(project),done=tasks.filter(t=>t.status==='done').length;
+ const chart=text('div','','project-donut'),center=text('div','','project-donut-center');center.append(text('strong',progress+'%'),text('span','프로젝트 진척률'));chart.append(center);chart.setAttribute('role','img');chart.dataset.progress=progress;
+ chart.style.background=`conic-gradient(${project.color} 0% ${progress}%, #e8edf3 ${progress}% 100%)`;
+ chart.setAttribute('aria-label',`${project.title} · 프로젝트 진척률 ${progress}% · 완료 ${done} / 전체 ${total}개 공정`);
+ const summary=text('div','','project-overview-copy'),heading=text('div','','project-summary-heading'),swatch=text('span','','project-color-swatch');swatch.style.backgroundColor=project.color;
+ heading.append(swatch,text('h3',project.title));summary.append(text('p','SELECTED PROJECT','overview-eyebrow'),heading,text('span',projectStates[project.status],'badge project-status-'+project.status),text('p',total?`진척률 ${progress}% · 완료 ${done} / 전체 ${total}개 공정`:'등록된 공정 없음','overview-caption'),text('small','공정별 진척률의 평균 · 날짜별 완료 체크 반영'));target.replaceChildren(chart,summary);
+}
+function renderProjectHistory(project){
+ const history=$('#project-history');history.replaceChildren();
+ for(const task of project?.tasks||[]){
+  const meta=`${task.start_date} ~ ${task.end_date} · ${task.assignee} · 참여자: ${(task.participants||[]).map(u=>u.name).join(', ')||'없음'} · ${task.completed_days}/${task.total_days}일 완료`;
+  const row=bcard(task.title,meta,()=>showTaskHistory(task,project)),title=row.querySelector('.work-card-title'),heading=text('div','','task-summary-heading');title.title=task.title;
+  heading.append(title,text('strong',`진척률 ${task.progress}%`,'task-progress-label'));row.prepend(heading);row.querySelector('p').title=meta;row.dataset.taskHistory=task.id;row.append(projectProgressBar(task.progress,task.title+' 달성도'));history.append(row);
+ }
+ emptyCards(history,project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.');
 }
 function renderProjects(){
  renderProjectOverview();
  const target=$('#project-cards');target.replaceChildren();
  for(const p of businessProjects){
-  const average=p.tasks.length?Math.round(p.tasks.reduce((sum,t)=>sum+t.progress,0)/p.tasks.length):0;
+  const average=projectProgress(p);
   const card=bcard(p.title,`${p.company||'내부 업무'}\n${p.start_date} ~ ${p.end_date}`,()=>{selectedProjectId=p.id;const base=today()>=p.start_date&&today()<=p.end_date?today():p.start_date;$('#project-month').value=base.slice(0,7);renderProjects();});
-  const title=card.querySelector('.work-card-title'),heading=text('div','','project-card-heading');title.title=p.title;const swatch=text('span','','project-color-swatch');swatch.style.backgroundColor=p.color;swatch.title='프로젝트 색상';heading.append(swatch);
+  const title=card.querySelector('.work-card-title'),heading=text('div','','project-card-heading');title.title=p.title;title.setAttribute('aria-pressed',String(p.id===selectedProjectId));const swatch=text('span','','project-color-swatch');swatch.style.backgroundColor=p.color;swatch.title='프로젝트 색상';heading.append(swatch);
   heading.append(title,text('span',projectStates[p.status],'badge project-status-'+p.status));card.prepend(heading);card.querySelector('p').title=p.company||'내부 업무';
   card.append(text('strong',`진척 ${average}% · 공정 ${p.tasks.filter(t=>t.status==='done').length}/${p.tasks.length}`),projectProgressBar(average,p.title+' 진척률'));
   if(p.id===selectedProjectId)card.classList.add('selected');target.append(card);
  }
  emptyCards(target,'프로젝트를 등록하고 공정을 관리하세요.');
- const p=businessProjects.find(p=>p.id===selectedProjectId);$('#project-detail').hidden=!p;if(!p)return;
- const progress=p.tasks.length?Math.round(p.tasks.reduce((n,t)=>n+t.progress,0)/p.tasks.length):0;
- $('#project-progress').value=progress;$('#project-progress-summary').textContent=`전체 진척률 ${progress}% · 완료 ${p.tasks.filter(t=>t.status==='done').length} / 전체 ${p.tasks.length}개 공정`;
+ const p=businessProjects.find(p=>p.id===selectedProjectId);$('#project-detail').hidden=!p;renderProjectHistory(p);if(!p)return;
  $('#project-title').textContent=p.title;$('#project-meta').textContent=`${p.company||'내부 업무'} · ${p.start_date} ~ ${p.end_date}\n등록자 ${p.owner} · 담당자 ${p.manager||p.owner} · 참여자: ${(p.participants||[]).map(u=>u.name).join(', ')||'없음'}${p.description?'\n'+p.description:''}`;
  $('#project-status').value=p.status;$('#project-status').disabled=false;$('#project-status-save').hidden=false;$('#project-task-new').hidden=false;
  const changes=$('#project-change-list');changes.replaceChildren();$('#project-changes').hidden=!(p.changes||[]).length;
  for(const change of p.changes||[])changes.append(text('small',`${change.action==='status'?'프로젝트 상태 변경':'프로젝트 정보 수정'} · ${change.actor_name} · ${time(change.created)}`));
- const month=$('#project-month').value,[year,m]=month.split('-').map(Number);const grid=$('#project-task-board');grid.replaceChildren();if(!year||!m)return;const days=new Date(Date.UTC(year,m,0)).getUTCDate(),first=new Date(Date.UTC(year,m-1,1)).getUTCDay(),end=month+'-'+String(days).padStart(2,'0');for(const name of ['일','월','화','수','목','금','토'])grid.append(text('div',name,'calendar-cell calendar-day'));for(let i=0;i<first;i++)grid.append(text('div','','calendar-cell blank'));
+ const month=$('#project-month').value,[year,m]=month.split('-').map(Number);const grid=$('#project-task-board');grid.replaceChildren();if(!year||!m)return;const days=new Date(Date.UTC(year,m,0)).getUTCDate(),first=new Date(Date.UTC(year,m-1,1)).getUTCDay();for(const name of ['일','월','화','수','목','금','토'])grid.append(text('div',name,'calendar-cell calendar-day'));for(let i=0;i<first;i++)grid.append(text('div','','calendar-cell blank'));
  for(let day=1;day<=days;day++){const date=month+'-'+String(day).padStart(2,'0'),cell=text('div','','calendar-cell'+(date===today()?' today':'')),button=text('button',String(day),'calendar-date');button.setAttribute('aria-label',date+' 공정 등록');button.disabled=date<p.start_date||date>p.end_date;button.onclick=()=>createTask(date);cell.append(button);for(const task of p.tasks.filter(t=>t.start_date<=date&&t.end_date>=date)){const chip=text('button',`${task.title} · ${task.progress}%`,'calendar-event task-event task-'+task.status);chip.title=`${task.assignee} · 참여자 ${(task.participants||[]).map(u=>u.name).join(', ')||'없음'} · ${taskStates[task.status]} · ${task.start_date} ~ ${task.end_date}`;applyProjectColor(chip,p.color);chip.onclick=()=>editTask(task,date);const item=text('div','','task-calendar-item'),label=text('label','','task-complete-label'),check=document.createElement('input');check.type='checkbox';check.checked=task.completed_dates.includes(date);check.dataset.taskComplete=task.id;check.setAttribute('aria-label',`${task.title} 완료 (${date})`);check.disabled=pendingTaskChecks.has(task.id);check.onchange=()=>run(()=>toggleTaskComplete(task,date,check.checked));label.append(check,text('span','완료'));item.append(label,chip);cell.append(item);}for(const event of (p.schedule_events||[]).filter(e=>e.start_date<=date&&e.end_date>=date)){const chip=text('button','일정 · '+event.title,'calendar-event project-schedule-event');applyProjectColor(chip,event.project_color||p.color);chip.onclick=()=>openSchedule(event);cell.append(chip);}grid.append(cell);}for(let i=0;i<(7-(first+days)%7)%7;i++)grid.append(text('div','','calendar-cell blank'));
- const history=$('#project-history');history.replaceChildren();
- for(const task of p.tasks.filter(t=>t.start_date<=end&&t.end_date>=month+'-01')){
-  const meta=`${task.start_date} ~ ${task.end_date} · ${task.assignee} · 참여자: ${(task.participants||[]).map(u=>u.name).join(', ')||'없음'} · ${task.completed_days}/${task.total_days}일 완료`;
-  const row=bcard(task.title,meta,()=>showTaskHistory(task,p)),title=row.querySelector('.work-card-title'),heading=text('div','','task-summary-heading');title.title=task.title;
-  heading.append(title,text('strong',`진척률 ${task.progress}%`,'task-progress-label'));row.prepend(heading);row.querySelector('p').title=meta;row.dataset.taskHistory=task.id;row.append(projectProgressBar(task.progress,task.title+' 달성도'));history.append(row);
- }
- emptyCards(history,'선택한 월의 공정이 없습니다.');
+
 }
 function projectWorkDate(entry){return entry.work_date||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(entry.created));}
 function taskHistoryHeading(entry,label){

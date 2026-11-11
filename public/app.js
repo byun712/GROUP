@@ -145,7 +145,7 @@ for(const id of ['expense-filter','expense-query'])$('#'+id).addEventListener(id
 
 function renderTemplateMenus(){
  const menu=$('#draft-menu'),cards=$('#template-cards'),filter=$('#approval-template-filter');menu.replaceChildren();cards.replaceChildren();filter.replaceChildren(text('option','모든 양식'));filter.firstChild.value='all';
- for(const template of draftTemplates){const button=text('button',template.name);button.type='button';button.setAttribute('role','menuitem');button.dataset.template=template.id;button.onclick=()=>selectTemplate(template.id);menu.append(button);const card=text('button',template.name);card.type='button';card.dataset.template=template.id;card.append(text('small','작성 → 이사 → 대표이사'));card.onclick=()=>selectTemplate(template.id);cards.append(card);const option=text('option',template.name);option.value=template.id;filter.append(option);}
+ for(const template of draftTemplates){const button=text('button',template.name);button.type='button';button.setAttribute('role','menuitem');button.dataset.template=template.id;button.onclick=()=>selectTemplate(template.id);menu.append(button);const card=text('button',template.name);card.type='button';card.dataset.template=template.id;card.onclick=()=>selectTemplate(template.id);cards.append(card);const option=text('option',template.name);option.value=template.id;filter.append(option);}
  for(const template of reportTemplates){const option=text('option',template.name+' · 업무보고');option.value=template.id;filter.append(option);}
 }
 let draftMenuAnchor=null;

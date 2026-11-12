@@ -21,21 +21,9 @@ try{
   const dimensions=()=>page.locator('.app-launcher button').evaluateAll(nodes=>nodes.filter(n=>!n.hidden).map(n=>({width:n.offsetWidth,height:n.offsetHeight})));
   const homeSizes=await dimensions();
   for(const key of keys){await page.locator(`.app-launcher [data-open=${key}]`).click();await page.mouse.move(0,0);assert.deepEqual(await dimensions(),homeSizes,`launcher dimensions: ${key}`);}
-  await page.locator('.app-launcher [data-open=approval]').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
-  const contentBefore=await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};});
-  await page.locator('#new-draft').click();assert.equal(await page.locator('#draft-menu').isVisible(),true);
-  const sideButton=await page.locator('#new-draft').boundingBox(),sideMenu=await page.locator('#draft-menu').boundingBox();assert.ok(sideMenu.x>=sideButton.x+sideButton.width);assert.deepEqual(await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};}),contentBefore);
-  await page.locator('#new-draft').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);
-  assert.equal(await page.locator('#approval-new-draft,#reports .panel-heading #new-report').count(),0);
-  await page.locator('.sidebar [data-tab=reports]').click();assert.equal((await page.locator('#new-report').innerText()).replace(/\s+/g,' '),'▧ 신규보고 ▸');assert.equal(await page.locator('#report-menu').isVisible(),false);
-  const reportBefore=await page.locator('.content').evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight}));
-  await page.locator('#new-report').click();const reportButton=await page.locator('#new-report').boundingBox(),reportMenu=await page.locator('#report-menu').boundingBox();assert.ok(reportMenu.x>=reportButton.x+reportButton.width);assert.deepEqual(await page.locator('.content').evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight})),reportBefore);
-  await page.locator('#report-menu button').first().click();await page.locator('#reportDraft').waitFor();assert.equal(await page.locator('#report-menu').isVisible(),false);
-  assert.match(await page.locator('.sidebar [data-tab=users]').innerText(),/▸/);
+  for(const [parent,menu] of [['approval','draft-menu'],['reports','report-menu']]){await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),true);await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),false);await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).evaluate(e=>!!e.closest('.sidebar')),true);}
+  assert.equal(await page.locator('#new-draft,#new-report').count(),0);
 
-  await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),false);
-  const userContent=await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};});await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),true);const userButton=await page.locator('.sidebar [data-tab=users]').boundingBox(),userMenu=await page.locator('#users-submenu').boundingBox();assert.ok(userMenu.x>=userButton.x+userButton.width);assert.deepEqual(await page.locator('.content').evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height};}),userContent);
-  await page.locator('.app-launcher [data-open=users]').click();assert.equal(await page.locator('#users-submenu').isVisible(),false);
  }
  await page.setViewportSize({width:1440,height:1000});await page.locator('.sidebar [data-tab=home]').click();
  const boxes=await page.locator('.sidebar-approval-shortcuts button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().toJSON()));

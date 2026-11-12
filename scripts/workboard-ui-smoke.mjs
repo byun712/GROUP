@@ -58,7 +58,7 @@ try{
   }
   await open('projects');await page.locator('#project-cards button').first().waitFor();
   const select=async name=>{await page.locator('#project-cards .work-card-title').getByText(name,{exact:true}).click();};
-  const verify=async(name,value,task)=>{await select(name);assert.equal(await page.locator('.project-donut-center strong').textContent(),value+'%');assert.equal(await page.locator('.project-donut').getAttribute('data-progress'),String(value));assert.match(await page.locator('.project-donut').evaluate(e=>e.style.background),new RegExp(value+'%'));assert.equal(await page.locator('#project-overview h3').textContent(),name);if(task)assert.match(await page.locator('#project-history').textContent(),new RegExp(task));};
+  const verify=async(name,value,task)=>{await select(name);assert.equal(await page.locator('.project-donut-center strong').textContent(),value+'%');assert.equal(await page.locator('.project-donut').getAttribute('data-progress'),String(value));if(task)assert.match(await page.locator('.project-donut').evaluate(e=>e.style.background),new RegExp(value+'%'));assert.equal(await page.locator('#project-overview h3').textContent(),name);if(task)assert.match(await page.locator('#project-history').textContent(),new RegExp(task));};
   await verify('A 진척률 검증',65,'A 전용 공정');assert.doesNotMatch(await page.locator('#project-history').textContent(),/B 전용/);assert.match(await page.locator('#project-overview').textContent(),/완료 0 \/ 전체 1/);
   await verify('B 완료 프로젝트',100,'B 전용 완료 공정');assert.doesNotMatch(await page.locator('#project-history').textContent(),/A 전용/);
   await verify('C 빈 프로젝트',0);assert.match(await page.locator('#project-overview').textContent(),/등록된 공정 없음/);assert.equal(await page.locator('#project-history .work-card').count(),0);
@@ -67,7 +67,7 @@ try{
   await verify('A 진척률 검증',65,'A 전용 공정');
   await page.locator('#project-month').fill('2026-11');await page.locator('#project-month').dispatchEvent('change');
   await page.getByRole('checkbox',{name:'A 전용 공정 완료 (2026-11-14)',exact:true}).check();await page.waitForFunction(()=>document.querySelector('.project-donut')?.dataset.progress==='70');
-  assert.equal(await page.locator('#project-history progress').evaluate(e=>String(e.value)),'70');
+  assert.equal(await page.locator('#project-history progress').evaluate(e=>String(e.value)),'70');assert.equal(await page.locator('#project-comparison progress').evaluate(e=>e.value),70);
   await page.locator('#project-history .work-card-title').click();await page.locator('#business-dialog').getByRole('button',{name:'공정 수정 · 수행 내역 작성',exact:true}).click();
   const form=page.locator('#business-dialog form');await form.locator('[name=end_date]').fill('2026-11-28');await form.locator('[name=end_date]').dispatchEvent('change');await form.locator('[name=change_reason]').fill('일정 연장 검증');await form.getByRole('button',{name:'저장',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.project-donut')?.dataset.progress==='50');
   await page.locator('#project-history .work-card-title').click();await page.locator('.task-schedule-history summary').click();assert.match(await page.locator('#business-dialog').textContent(),/일정 연장 검증/);await page.keyboard.press('Escape');

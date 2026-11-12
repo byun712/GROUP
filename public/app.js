@@ -9,7 +9,7 @@ function text(tag,value,cls){const e=document.createElement(tag);e.textContent=v
 const time=s=>s?new Date(s).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'—';
 const shortTime=s=>s?new Date(s).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}):'—';
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-function openPage(id){if(!pages[id]||['approvalSettings','leaveAdmin'].includes(id)&&!me?.user.is_admin||['accounting','sealSettings'].includes(id)&&!['manager','ceo'].includes(me?.user.role))return;document.documentElement.dataset.page=id;setWorkspaceTheme(id);const userContext=['users','leaveAdmin','approvalSettings','sealSettings'].includes(id);$('#users-submenu').hidden=true;for(const button of document.querySelectorAll('[data-tab=users],[data-open=users]')){button.setAttribute('aria-controls','users-submenu');button.setAttribute('aria-expanded','false');}$('#message').textContent='';$('#menu-dialog').close();$('#report-draft-picker').hidden=!['reports','reportDraft'].includes(id);const approvalContext=['approval','draft','leave','expense'].includes(id);$('#approval-draft-picker').hidden=!approvalContext;$('#draft-menu').hidden=true;$('#new-draft').setAttribute('aria-expanded','false');$('.sidebar [data-tab=approval]').setAttribute('aria-expanded','false');for(const key of Object.keys(pages))$('#'+key).hidden=key!==id;const parentPage=userContext?'users':id==='reportDraft'?'reports':['leave','expense','draft'].includes(id)?'approval':id;for(const b of document.querySelectorAll('.sidebar nav>[data-tab],.app-launcher [data-open]')){const active=(b.dataset.tab||b.dataset.open)===parentPage;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const b of $('#users-submenu').querySelectorAll('button')){const active=b.id==='approval-settings-button'?id==='approvalSettings':b.dataset.tab===id;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}$('#page-title').textContent=pages[id];document.title=pages[id]+' | ELSOLTEC';if(id==='calendar')run(loadCalendar);if(id==='home'){window.scrollTo(0,0);updateHomeViewport();run(loadHomeCalendar);}if(id==='announcements')run(loadNoticeBoard);document.dispatchEvent(new CustomEvent('workspace-page',{detail:id}));if(typeof growFormFields==='function')requestAnimationFrame(growFormFields);}
+function openPage(id){if(!pages[id]||['approvalSettings','leaveAdmin'].includes(id)&&!me?.user.is_admin||['accounting','sealSettings'].includes(id)&&!['manager','ceo'].includes(me?.user.role))return;document.documentElement.dataset.page=id;setWorkspaceTheme(id);const userContext=['users','leaveAdmin','approvalSettings','sealSettings'].includes(id);$('#users-submenu').hidden=true;for(const button of document.querySelectorAll('[data-tab=users],[data-open=users]')){button.setAttribute('aria-controls','users-submenu');button.setAttribute('aria-expanded','false');}$('#message').textContent='';$('#menu-dialog').close();for(const key of Object.keys(pages))$('#'+key).hidden=key!==id;const parentPage=userContext?'users':id==='reportDraft'?'reports':['leave','expense','draft'].includes(id)?'approval':id;for(const b of document.querySelectorAll('.sidebar nav>[data-tab],.app-launcher [data-open]')){const active=(b.dataset.tab||b.dataset.open)===parentPage;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}for(const b of $('#users-submenu').querySelectorAll('button')){const active=b.id==='approval-settings-button'?id==='approvalSettings':b.dataset.tab===id;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}syncSidebarForms(id);$('#page-title').textContent=pages[id];document.title=pages[id]+' | ELSOLTEC';if(id==='calendar')run(loadCalendar);if(id==='home'){window.scrollTo(0,0);updateHomeViewport();run(loadHomeCalendar);}if(id==='announcements')run(loadNoticeBoard);document.dispatchEvent(new CustomEvent('workspace-page',{detail:id}));if(typeof growFormFields==='function')requestAnimationFrame(growFormFields);}
 function badge(l){return text('span',statuses[l.status],'badge '+l.status);}
 function documentRow(l,full){const a=document.createElement('article'),head=text('div','','document-head');head.append(text('strong',`${l.name} · ${l.kind}`),badge(l));a.append(head,text('p',`${l.start} ~ ${l.end}`));if(!full){const link=text('button','문서 상세 보기','cell-link');link.onclick=()=>showDocument(l.id);a.append(link);}if(full){a.append(text('p',l.reason));for(const h of l.history)a.append(text('small',`${h.approval_round}차 · ${h.name} · ${actions[h.action]} · ${time(h.created)}`));const choices=[];if(l.user_id===me.user.id&&l.status==='manager')choices.push('withdraw');if(l.status===me.user.role)choices.push('approve','reject');for(const action of choices){const b=text('button',actions[action]);b.onclick=()=>run(async()=>{await api(`leaves/${l.id}/action`,{action,expected_version:l.version});await refresh();});a.append(b);}}return a;}
 function createGrid(headers,rows){const wrap=text('div','','table-scroll'),table=text('table','','data-grid'),thead=document.createElement('thead'),tr=document.createElement('tr');for(const header of headers){const th=document.createElement('th');th.scope='col';if(typeof header==='string')th.textContent=header;else{const button=text('button',header.label,'cell-link');button.onclick=header.action;th.append(button);}tr.append(th);}thead.append(tr);const tbody=document.createElement('tbody');for(const cells of rows){const row=document.createElement('tr');for(const cell of cells){const td=document.createElement('td');if(cell instanceof Node)td.append(cell);else td.textContent=cell;row.append(td);}tbody.append(row);}if(!rows.length){const row=document.createElement('tr'),td=text('td','조회된 기록이 없습니다.','empty');td.colSpan=headers.length;row.append(td);tbody.append(row);}table.append(thead,tbody);wrap.append(table);return wrap;}
@@ -76,7 +76,21 @@ $('#notice-reply-form').onsubmit=async event=>{
  finally{button.disabled=false;}
 };
 async function refresh(){[leaves,records,notices,expenses,drafts,approvalInbox,reportRows]=await Promise.all([api('leaves'),api('attendance'),api('announcements'),api('expenses'),api('approvals'),['manager','ceo'].includes(me.user.role)?api('approval-inbox'):Promise.resolve({count:0,documents:[]}),api('reports')]);if(typeof renderReports==='function')renderReports();renderApprovalCenter();renderExpenses();renderDocuments();renderNotices();if(!$('#announcements').hidden)await loadNoticeBoard();const approvalRows=allApprovalRows();$('#stat-pending').textContent=approvalRows.filter(l=>l.user_id===me.user.id&&['manager','ceo'].includes(l.status)).length;const approver=me.user.role!=='employee';$('#approval-label').textContent=approver?'승인 대기':'내 승인 완료';$('#approval-hint').textContent=approver?'결재함 보기 →':'신청 보기 →';$('#stat-action').textContent=approvalRows.filter(l=>approver?l.status===me.user.role:l.user_id===me.user.id&&l.status==='approved').length;const current=records.find(r=>r.day===today());$('#home-in').textContent=shortTime(current?.clock_in);$('#home-out').textContent=shortTime(current?.clock_out);$('#home-attendance-note').textContent=me.officeAllowed?'현재 사무실 네트워크에서 출퇴근 등록이 가능합니다.':'사외에서는 기록 조회만 가능합니다.';$('#clock-in').disabled=!me.officeAllowed||!!current;$('#clock-out').disabled=!me.officeAllowed||!current||!!current.clock_out;$('#attendance-register-target').textContent='등록 대상: '+me.user.name+' (본인)';$('#attendance-action-status').textContent=!me.officeAllowed?'사외 네트워크 · 출퇴근 등록 불가 (기록 조회 가능)':current?.clock_out?'오늘 출근·퇴근 등록이 완료되었습니다.':current?'출근 등록 완료 · 퇴근 시 퇴근 등록을 눌러 주세요.':'출근 전 · 사무실 네트워크에서 등록 가능';$('#clock-in').textContent=current?'출근 등록 완료':'출근 등록';$('#clock-out').textContent=current?.clock_out?'퇴근 등록 완료':'퇴근 등록';if(typeof loadAttendanceCalendar==='function'&&!$('#attendance').hidden)await loadAttendanceCalendar();document.dispatchEvent(new Event('leave-balances-updated'));if(!$('#home').hidden&&$('#home-calendar-grid').dataset.month)await loadHomeCalendar();}
-async function loadCalendar(){const month=$('#calendar-month').value;if(!month)return;const request=++scheduleRequest;const data=await api('schedules?month='+encodeURIComponent(month));if(request!==scheduleRequest)return;scheduleData=data;renderScheduleCalendar();}
+let selectedWeek='',calendarLoadedMonth='',scheduleSnapshotKey='';
+function addCalendarDays(day,count){const date=new Date(day+'T00:00:00Z');date.setUTCDate(date.getUTCDate()+count);return date.toISOString().slice(0,10);}
+function calendarWeekStart(day){return addCalendarDays(day,-new Date(day+'T00:00:00Z').getUTCDay());}
+async function loadCalendar(){
+ const month=$('#calendar-month').value;if(!/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month))return;
+ if(calendarLoadedMonth!==month||!selectedWeek){selectedWeek=calendarWeekStart(month===today().slice(0,7)?today():month+'-01');calendarLoadedMonth=month;}
+ const request=++scheduleRequest,week=selectedWeek,end=addCalendarDays(week,6),months=[...new Set([month,week.slice(0,7),end.slice(0,7)])].filter(m=>/^[1-9]\d{3}-/.test(m));
+ scheduleSnapshotKey='';$('#calendar-events').setAttribute('aria-busy','true');$('#calendar-events').replaceChildren(text('p','주간 일정을 불러오는 중…','empty'));$('#calendar-week-range').textContent=week+' ~ '+end;
+ if($('#calendar-grid').dataset.month!==month)$('#calendar-grid').replaceChildren();$('#calendar-grid').setAttribute('aria-busy','true');
+ try{const data=await Promise.all(months.map(m=>api('schedules?month='+encodeURIComponent(m))));if(request!==scheduleRequest)return;
+ scheduleData={events:[...new Map(data.flatMap(d=>d.events).map(e=>[e.id,e])).values()],leaves:[...new Map(data.flatMap(d=>d.leaves).map(e=>[e.id,e])).values()]};scheduleData.events.sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.start_time.localeCompare(b.start_time)||a.id-b.id);scheduleData.leaves.sort((a,b)=>a.start.localeCompare(b.start)||a.id-b.id);scheduleSnapshotKey=month+'|'+week;renderScheduleCalendar();}
+ catch(error){if(request===scheduleRequest){$('#calendar-events').replaceChildren(text('p','주간 일정을 불러오지 못했습니다. '+error.message,'empty'));throw error;}}
+ finally{if(request===scheduleRequest){$('#calendar-events').setAttribute('aria-busy','false');$('#calendar-grid').setAttribute('aria-busy','false');}}
+}
+function selectCalendarWeek(day,syncMonth=false){selectedWeek=calendarWeekStart(day);if(syncMonth){$('#calendar-month').value=day.slice(0,7);calendarLoadedMonth=day.slice(0,7);}run(loadCalendar);}
 let homeCalendarRequest=0;
 async function loadHomeCalendar(){
  const month=$('#home-calendar-month').value,grid=$('#home-calendar-grid'),status=$('#home-calendar-status'),request=++homeCalendarRequest;
@@ -87,7 +101,7 @@ async function loadHomeCalendar(){
   const data=await api('schedules?month='+encodeURIComponent(month));if(request!==homeCalendarRequest)return;
   renderScheduleGrid(grid,month,data.events,data.leaves);grid.dataset.month=month;
   status.textContent=`일정 ${data.events.length}건 · 승인 휴가 ${data.leaves.length}건`;
-  grid.title='날짜를 누르면 일정 등록, 일정 이름이나 더보기를 누르면 상세 확인';
+  grid.title='날짜를 누르면 일정 등록, 일정 이름을 누르면 상세 확인';updateHomeViewport();
  }catch(error){if(request===homeCalendarRequest)status.textContent='일정을 불러오지 못했습니다. '+error.message+' 조회 월을 다시 선택해 주세요.';}
  finally{if(request===homeCalendarRequest)grid.setAttribute('aria-busy','false');}
 }
@@ -103,7 +117,7 @@ $('#notice-form').onsubmit=async event=>{
  finally{button.disabled=false;}
 };
 $('#logout').onclick=()=>run(async()=>{await api('logout',{});location.reload();});
-for(const b of document.querySelectorAll('[data-tab],[data-open]'))b.onclick=()=>{const target=b.dataset.tab||b.dataset.open;if(target==='users'&&document.documentElement.dataset.page==='users'&&(me?.user.is_admin||['manager','ceo'].includes(me?.user.role))){const show=$('#users-submenu').hidden;$('#users-submenu').hidden=!show;if(show){toggleDraftMenu(false);closeReportMenu();positionFlyout($('#users-submenu'),b,b.closest('.sidebar')?'right':'below');}for(const button of document.querySelectorAll('[data-tab=users],[data-open=users]'))button.setAttribute('aria-expanded',String(show));return;}openPage(target);if(b.dataset.view){$('#leave-filter').value=b.dataset.view;documentPage=1;renderDocuments();}};
+for(const b of document.querySelectorAll('[data-tab],[data-open]'))b.onclick=()=>{const target=b.dataset.tab||b.dataset.open;if(b.closest('.sidebar')&&['approval','reports'].includes(target)&&document.documentElement.dataset.page===target){setSidebarForms(target,$(target==='approval'?'#draft-menu':'#report-menu').hidden);return;}if(target==='users'&&document.documentElement.dataset.page==='users'&&(me?.user.is_admin||['manager','ceo'].includes(me?.user.role))){const show=$('#users-submenu').hidden;$('#users-submenu').hidden=!show;if(show){toggleDraftMenu(false);closeReportMenu();positionFlyout($('#users-submenu'),b,b.closest('.sidebar')?'right':'below');}for(const button of document.querySelectorAll('[data-tab=users],[data-open=users]'))button.setAttribute('aria-expanded',String(show));return;}openPage(target);if(b.dataset.view){$('#leave-filter').value=b.dataset.view;documentPage=1;renderDocuments();}};
 $('#leave-filter').onchange=()=>{documentPage=1;renderDocuments();};$('#calendar-month').onchange=()=>run(loadCalendar);
 for(const action of ['in','out'])$('#clock-'+action).onclick=()=>run(async()=>{await api('attendance',{action});await refresh();notice('등록했습니다.');});
 let installPrompt;window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('#install-app').hidden=false;});$('#install-app').onclick=()=>run(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#install-app').hidden=true;});window.addEventListener('appinstalled',()=>{$('#install-app').hidden=true;installPrompt=null;});
@@ -148,7 +162,6 @@ function renderTemplateMenus(){
  for(const template of draftTemplates){const button=text('button',template.name);button.type='button';button.setAttribute('role','menuitem');button.dataset.template=template.id;button.onclick=()=>selectTemplate(template.id);menu.append(button);const card=text('button',template.name);card.type='button';card.dataset.template=template.id;card.onclick=()=>selectTemplate(template.id);cards.append(card);const option=text('option',template.name);option.value=template.id;filter.append(option);}
  for(const template of reportTemplates){const option=text('option',template.name+' · 업무보고');option.value=template.id;filter.append(option);}
 }
-let draftMenuAnchor=null;
 function positionFlyout(menu,anchor,direction){
  if(menu.parentElement!==document.body)document.body.append(menu);menu.flyoutAnchor=anchor;menu.flyoutDirection=direction;menu.classList.add('navigation-flyout');menu.hidden=false;
  const rect=anchor.getBoundingClientRect(),gap=8,pad=8;
@@ -160,12 +173,13 @@ function positionFlyout(menu,anchor,direction){
  menu.style.left=Math.max(pad,Math.min(left,innerWidth-width-pad))+'px';
  menu.style.top=Math.max(pad,Math.min(direction==='right'?rect.top:rect.bottom+gap,innerHeight-height-pad))+'px';
 }
-function toggleDraftMenu(force,anchor=$('#new-draft')){
- const menu=$('#draft-menu'),show=force??(menu.hidden||draftMenuAnchor!==anchor);
- menu.hidden=!show;draftMenuAnchor=anchor;
- for(const button of [$('#new-draft')])button.setAttribute('aria-expanded',String(show&&button===anchor));
- if(show){closeUserFlyout();closeReportMenu();positionFlyout(menu,anchor,anchor.id==='new-draft'?'right':'below');menu.querySelector('button')?.focus();}
+function setSidebarForms(parent,show){const menu=$(parent==='approval'?'#draft-menu':'#report-menu');menu.hidden=!show;$('.sidebar [data-tab='+parent+']').setAttribute('aria-expanded',String(show));}
+function syncSidebarForms(page){
+ const approval=['approval','draft','leave','expense'].includes(page),report=['reports','reportDraft'].includes(page);setSidebarForms('approval',approval);setSidebarForms('reports',report);
+ for(const b of $('#draft-menu').querySelectorAll('button')){const active=approval&&page!=='approval'&&b.dataset.template===selectedTemplate?.id;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}
+ for(const b of $('#report-menu').querySelectorAll('button')){const active=page==='reportDraft'&&b.dataset.reportTemplate===reportEditingTemplate?.id;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}
 }
+function toggleDraftMenu(force){setSidebarForms('approval',force??$('#draft-menu').hidden);}
 function closeUserFlyout(){ $('#users-submenu').hidden=true;for(const button of document.querySelectorAll('[data-tab=users],[data-open=users]'))button.setAttribute('aria-expanded','false');}
 
 function updateResearchFields(){const research=$('#expense-form-type').value==='research_expense';$('#research-project').hidden=!research;for(const input of $('#research-project').querySelectorAll('input')){input.disabled=!research;input.required=research&&input.name==='project_name';}}
@@ -189,14 +203,17 @@ function renderApprovalCenter(){
 function showDraft(id){
  const row=drafts.find(d=>d.id===id);if(!row)return;const template=draftTemplates.find(t=>t.id===row.template_id);if(!template)return;$('#document-title').textContent=template.name;const target=$('#document-detail');target.replaceChildren(text('h3',template.name,'document-paper-title'));target.append(renderSignedFlow(row,'approvals','기안자'));const table=text('table','','detail-fields');const values=[['문서번호','AP-'+String(row.id).padStart(5,'0')],['제목',row.title],['기안자',row.name],['상태',statuses[row.status]],['상신일',time(row.created)],...template.fields.map(f=>[f.label,f.type==='money'?won(row.fields[f.key]):row.fields[f.key]])];for(const [label,value] of values){const tr=document.createElement('tr'),th=text('th',label);th.scope='row';tr.append(th,text('td',String(value),'detail-reason'));table.append(tr);}target.append(table);const buttons=text('div','','detail-actions'),choices=[];if(row.user_id===me.user.id&&row.status==='manager')choices.push('withdraw');if(row.status===me.user.role)choices.push('approve','reject');for(const action of choices){const button=text('button',actions[action]);button.onclick=()=>run(async()=>{button.disabled=true;try{await api(`approvals/${id}/action`,{action,expected_version:row.version});await refresh();showDraft(id);}finally{button.disabled=false;}});buttons.append(button);}appendDirectorRejection(buttons,'approvals',row);appendDocumentWorkflow(buttons,'approvals',row);appendExcelDownload(buttons,'approvals',row);appendDocumentDelete(buttons,'approvals',row);target.append(buttons);const history=text('div','','detail-history');history.append(text('h3','처리 이력'));if(!row.history.length)history.append(text('small','아직 처리 이력이 없습니다.'));for(const h of row.history)history.append(text('small',`${h.approval_round}차 · ${h.name} · ${actions[h.action]} · ${time(h.created)}`));target.append(history);if(!$('#document-dialog').open)$('#document-dialog').showModal();$('#document-dialog').scrollTop=0;
 }
-$('#new-draft').onclick=()=>toggleDraftMenu();$('#expense-form-type').onchange=updateResearchFields;updateResearchFields();
-$('#draft-menu').onkeydown=event=>{const buttons=[...$('#draft-menu').querySelectorAll('button')],current=buttons.indexOf(document.activeElement);if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();const index=event.key==='Home'?0:event.key==='End'?buttons.length-1:(current+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[index]?.focus();}else if(event.key==='Escape'){event.preventDefault();const anchor=draftMenuAnchor;toggleDraftMenu(false);anchor?.focus();}};
-document.addEventListener('click',event=>{if(!event.target.closest('#draft-menu,#new-draft'))toggleDraftMenu(false);if(!event.target.closest('#users-submenu,[data-tab=users],[data-open=users]'))closeUserFlyout();});
-document.addEventListener('workspace-page',()=>{toggleDraftMenu(false);closeUserFlyout();});
-window.addEventListener('resize',()=>{toggleDraftMenu(false);closeUserFlyout();closeReportMenu();});
-document.addEventListener('scroll',event=>{if(event.target?.closest?.('.navigation-flyout'))return;for(const menu of [$('#draft-menu'),$('#users-submenu'),$('#report-menu')])if(!menu.hidden&&menu.flyoutAnchor)positionFlyout(menu,menu.flyoutAnchor,menu.flyoutDirection);},true);
+$('#expense-form-type').onchange=updateResearchFields;updateResearchFields();
+for(const [id,parent] of [['draft-menu','approval'],['report-menu','reports']]){
+ $('#'+id).onkeydown=event=>{const buttons=[...$('#'+id).querySelectorAll('button')],current=buttons.indexOf(document.activeElement);if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(current+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();}else if(['Escape','ArrowLeft'].includes(event.key)){event.preventDefault();setSidebarForms(parent,false);$('.sidebar [data-tab='+parent+']').focus();}};
+ $('.sidebar [data-tab='+parent+']').addEventListener('keydown',event=>{if(['ArrowRight','ArrowDown'].includes(event.key)){event.preventDefault();setSidebarForms(parent,true);$('#'+id+' button')?.focus();}else if(event.key==='ArrowLeft'){event.preventDefault();setSidebarForms(parent,false);}});
+}
+document.addEventListener('click',event=>{if(!event.target.closest('#users-submenu,[data-tab=users],[data-open=users]'))closeUserFlyout();});
+window.addEventListener('resize',closeUserFlyout);
+document.addEventListener('scroll',event=>{if(event.target?.closest?.('.navigation-flyout'))return;const menu=$('#users-submenu');if(!menu.hidden&&menu.flyoutAnchor)positionFlyout(menu,menu.flyoutAnchor,menu.flyoutDirection);},true);
 $('#users-submenu').addEventListener('keydown',event=>{if(event.key==='Escape'){closeUserFlyout();$('.sidebar [data-tab=users]').focus();}else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();const buttons=[...$('#users-submenu').querySelectorAll('button')].filter(b=>!b.hidden),index=buttons.indexOf(document.activeElement);buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();}});
 $('#draft-form').onsubmit=event=>{event.preventDefault();run(async()=>{if(!selectedTemplate||selectedTemplate.storage!=='draft')throw Error('기안 양식을 먼저 선택하세요');const fields={};for(const f of selectedTemplate.fields){const value=$('#draft-fields [name='+f.key+']').value;fields[f.key]=f.type==='money'?Number(value):value;}const submit=$('#draft-submit');submit.disabled=true;try{const body={template_id:selectedTemplate.id,title:$('#draft-form [name=title]').value,fields};if(await saveDocumentEdit('approvals',body))return;await api('approvals',body);event.target.reset();await refresh();approvalBox='mine';approvalPage=1;renderApprovalCenter();openPage('approval');notice('기안 문서를 상신했습니다.');}finally{submit.disabled=false;}});};
+
 for(const [id,event] of [['approval-query','input'],['approval-template-filter','change']])$('#'+id).addEventListener(event,()=>{approvalPage=1;renderApprovalCenter();});$('#approval-prev').onclick=()=>{approvalPage--;renderApprovalCenter();};$('#approval-next').onclick=()=>{approvalPage++;renderApprovalCenter();};$('#open-my-drafts').onclick=()=>{approvalBox='mine';approvalPage=1;renderApprovalCenter();openPage('approval');};
 
 
@@ -214,18 +231,14 @@ function renderScheduleGrid(grid,month,events,leaves){
  for(let day=1;day<=days;day++){
   const date=month+'-'+String(day).padStart(2,'0'),cell=text('div','','calendar-cell'+(date===today()?' today':'')),dateButton=text('button',String(day),'calendar-date');
   const dayEvents=events.filter(e=>e.start_date<=date&&e.end_date>=date),dayLeaves=leaves.filter(l=>l.start<=date&&l.end>=date);
-  dateButton.setAttribute('aria-label',date+' 일정 등록');dateButton.onclick=()=>openSchedule(null,date);
-  if(home){
-   const heading=text('div','','home-calendar-date-heading'),more=text('button','','home-calendar-more');more.hidden=true;
-   more.setAttribute('aria-label',date+' 일정 '+(dayEvents.length+dayLeaves.length)+'건 모두 보기');more.setAttribute('aria-haspopup','dialog');
-   more.onclick=()=>openHomeDay(date,dayEvents,dayLeaves);heading.append(dateButton,more);cell.append(heading);
-  }else cell.append(dateButton);
-  for(const e of dayEvents){const button=text('button',(e.all_day?'':e.start_time+' ')+e.title,'calendar-event event-'+e.visibility);button.title=e.title+' · '+scheduleVisibility(e.visibility)+' 일정';applyProjectColor(button,e.project_color);button.onclick=()=>openSchedule(e);cell.append(button);}
-  for(const leave of dayLeaves){const label=text('div',`${leave.name} · ${leave.kind}`,'calendar-event event-leave');label.title='이사 승인된 휴가 · '+leave.start+' ~ '+leave.end;cell.append(label);}
+  cell.dataset.date=date;dateButton.setAttribute('aria-label',date+' 일정 등록');dateButton.onclick=()=>{if(!home)selectCalendarWeek(date);openSchedule(null,date);};
+  const heading=text('div','','calendar-date-heading'),items=text('div','','calendar-day-items');heading.append(dateButton);cell.append(heading,items);items.tabIndex=0;items.setAttribute('aria-label',date+' 일정 '+(dayEvents.length+dayLeaves.length)+'건');
+  for(const e of dayEvents){const button=text('button',(e.all_day?'':e.start_time+' ')+e.title,'calendar-event event-'+e.visibility);button.title=e.title+' · '+scheduleVisibility(e.visibility)+' 일정';button.dataset.eventId=e.id;applyProjectColor(button,e.project_color);button.onclick=()=>openSchedule(e);items.append(button);}
+  for(const leave of dayLeaves){const label=text('button',`${leave.name} · ${leave.kind}`,'calendar-event event-leave');label.type='button';label.title='이사 승인된 휴가 · '+leave.start+' ~ '+leave.end;label.onclick=()=>openHomeDay(date,[],[leave]);items.append(label);}
   grid.append(cell);
  }
  for(let i=0;i<(7-(first+days)%7)%7;i++)grid.append(text('div','','calendar-cell blank'));
- if(home)fitHomeCalendarEvents();
+ if(home)updateHomeViewport();
 }
 
 function openHomeDay(date,events,leaves){
@@ -239,38 +252,29 @@ function openHomeDay(date,events,leaves){
  $('#home-day-add').onclick=()=>{dialog.close();openSchedule(null,date);};dialog.showModal();
 }
 
-// Home uses the available desktop height; other workspaces retain their natural height.
+// Measure actual content positions so shared spacing and summary height are included.
 function updateHomeViewport(){
- const top=document.querySelector('.topbar').offsetHeight+$('#message').offsetHeight;
- document.documentElement.style.setProperty('--home-workspace-top',top+'px');
- requestAnimationFrame(fitHomeCalendarEvents);
-}
-function fitHomeCalendarEvents(){
- const grid=$('#home-calendar-grid');if($('#home').hidden||!grid.clientHeight)return;
- const fitted=getComputedStyle(grid).getPropertyValue('--home-fit').trim()==='1';
- for(const cell of grid.querySelectorAll('.calendar-cell:has(.home-calendar-date-heading)')){
-  const heading=cell.querySelector('.home-calendar-date-heading'),more=heading.querySelector('.home-calendar-more'),items=[...cell.querySelectorAll('.calendar-event')];
-  // Each compact chip occupies 20px. Reserve the date line, padding and borders.
-  const visible=fitted?Math.max(0,Math.floor((cell.clientHeight-heading.offsetHeight-6)/20)):items.length;
-  for(let i=0;i<items.length;i++)items[i].hidden=i>=visible;
-  const remaining=Math.max(0,items.length-visible);more.hidden=remaining===0;more.textContent='+'+remaining+' 더보기';
- }
+ const grid=$('#home-calendar-grid');if($('#home').hidden)return;
+ const top=grid.getBoundingClientRect().top+window.scrollY;
+ grid.style.setProperty('--home-grid-height',Math.max(220,innerHeight-top-28)+'px');
 }
 const homeResizeObserver=new ResizeObserver(updateHomeViewport);
-for(const element of [document.querySelector('.topbar'),$('#message'),$('#home-calendar-grid')])homeResizeObserver.observe(element);
+for(const element of [document.querySelector('.topbar'),$('#message'),$('.app-launcher'),$('#home .dashboard-grid')])homeResizeObserver.observe(element);
 window.addEventListener('resize',updateHomeViewport);
 function renderScheduleCalendar(){
+ if(scheduleSnapshotKey!==$('#calendar-month').value+'|'+selectedWeek)return;
  const month=$('#calendar-month').value,events=scheduleData.events.filter(e=>$('#calendar-show-'+e.visibility).checked),leaves=$('#calendar-show-leave').checked?scheduleData.leaves:[];
- renderScheduleGrid($('#calendar-grid'),month,events,leaves);
- const list=$('#calendar-events');list.replaceChildren();if(!events.length&&!leaves.length)list.append(text('p','조회 조건에 해당하는 일정이 없습니다.','empty'));
- for(const e of events){
+ renderScheduleGrid($('#calendar-grid'),month,events,leaves);$('#calendar-grid').dataset.month=month;
+ const weekEnd=addCalendarDays(selectedWeek,6),weekEvents=events.filter(e=>e.start_date<=weekEnd&&e.end_date>=selectedWeek),weekLeaves=leaves.filter(e=>e.start<=weekEnd&&e.end>=selectedWeek);$('#calendar-week-range').textContent=selectedWeek+' ~ '+weekEnd;
+ const list=$('#calendar-events');list.replaceChildren();if(!weekEvents.length&&!weekLeaves.length)list.append(text('p','해당 주에 등록된 일정이 없습니다','empty'));
+ for(const e of weekEvents){
   const item=text('article','','schedule-list-row'),button=text('button',e.title,'cell-link schedule-list-title'),details=`${e.start_date} ~ ${e.end_date} · ${e.all_day?'종일':e.start_time+' ~ '+e.end_time} · ${scheduleVisibility(e.visibility)} · ${e.name}${e.project_title?' · 프로젝트: '+e.project_title:''}`,meta=text('small',details,'schedule-list-meta'),actions=text('div','','schedule-list-actions');
   button.title=e.title;applyProjectColor(button,e.project_color);button.onclick=()=>openSchedule(e);meta.title=details;
   if(e.can_edit){const edit=text('button','일정 수정','secondary');edit.onclick=()=>openSchedule(e);actions.append(edit);}
   if(e.project_id){const project=text('button','연결 프로젝트 열기','secondary');project.onclick=()=>document.dispatchEvent(new CustomEvent('open-project',{detail:e.project_id}));actions.append(project);}
   item.append(button,meta,actions);list.append(item);
  }
- for(const leave of leaves){const item=text('article','','schedule-list-row schedule-list-leave');item.append(text('span',`${leave.name} · ${leave.kind}`,'event-leave'),text('small',`${leave.start} ~ ${leave.end} · 이사 승인 휴가`,'schedule-list-meta'));list.append(item);}
+ for(const leave of weekLeaves){const item=text('article','','schedule-list-row schedule-list-leave');item.append(text('span',`${leave.name} · ${leave.kind}`,'event-leave'),text('small',`${leave.start} ~ ${leave.end} · 이사 승인 휴가`,'schedule-list-meta'));list.append(item);}
 }
 function scheduleTimes(){const form=$('#schedule-form'),allDay=form.elements.all_day.checked;$('#schedule-times').hidden=allDay;for(const name of ['start_time','end_time']){form.elements[name].disabled=allDay||!!scheduleEditing&&!scheduleEditing.can_edit;form.elements[name].required=!allDay;}}
 function openSchedule(event=null,date=today()){
@@ -278,7 +282,7 @@ function openSchedule(event=null,date=today()){
  form.elements.visibility.disabled=!!event&&!event.can_manage_sharing;const projectSelect=$('#schedule-project');projectSelect.replaceChildren(text('option','프로젝트 미연결'));projectSelect.firstChild.value='';if(event?.project_id){const option=text('option',event.project_title||'연결 프로젝트');option.value=String(event.project_id);projectSelect.append(option);projectSelect.value=String(event.project_id);}api('project-options').then(projects=>{if(rosterRequest!==scheduleRosterRequest)return;const value=projectSelect.value;projectSelect.replaceChildren(text('option','프로젝트 미연결'));projectSelect.firstChild.value='';for(const p of projects){const option=text('option',p.title);option.value=String(p.id);projectSelect.append(option);}projectSelect.value=value;}).catch(error=>{if(rosterRequest===scheduleRosterRequest)$('#schedule-error').textContent=error.message;});scheduleTimes();renderScheduleParticipants();api('people').then(people=>{if(rosterRequest!==scheduleRosterRequest)return;const roster=new Map((event?.participants||[]).map(p=>[p.id,p]));for(const person of people)roster.set(person.id,{...person,active:1});schedulePeople=[...roster.values()];renderScheduleParticipants();}).catch(error=>{if(rosterRequest===scheduleRosterRequest)$('#schedule-error').textContent=error.message;});$('#schedule-author').textContent=event?'작성자 '+event.name+' · 한국 시간 기준':'회사 일정은 모든 직원에게, 참여자 공유는 선택한 인원에게 표시됩니다.';$('#schedule-delete').hidden=!event||!event.can_delete;$('#schedule-save').hidden=!canEdit;if(!$('#schedule-dialog').open)$('#schedule-dialog').showModal();$('#schedule-dialog').scrollTop=0;
 }
 function shiftCalendar(delta,home=false){const input=$(home?'#home-calendar-month':'#calendar-month'),value=input.value;if(!value)return;const [year,month]=value.split('-').map(Number),date=new Date(Date.UTC(year,month-1+delta,1));if(date.getUTCFullYear()<1000||date.getUTCFullYear()>9999)return;input.value=date.getUTCFullYear()+'-'+String(date.getUTCMonth()+1).padStart(2,'0');run(home?loadHomeCalendar:loadCalendar);}
-$('#calendar-prev').onclick=()=>shiftCalendar(-1);$('#calendar-next').onclick=()=>shiftCalendar(1);$('#calendar-today').onclick=()=>{$('#calendar-month').value=today().slice(0,7);run(loadCalendar);};$('#schedule-new').onclick=()=>openSchedule();$('#schedule-form [name=all_day]').onchange=scheduleTimes;
+$('#calendar-prev').onclick=()=>shiftCalendar(-1);$('#calendar-next').onclick=()=>shiftCalendar(1);$('#calendar-today').onclick=()=>selectCalendarWeek(today(),true);$('#schedule-new').onclick=()=>openSchedule();$('#schedule-form [name=all_day]').onchange=scheduleTimes;
 $('#home-calendar-month').onchange=()=>run(loadHomeCalendar);$('#home-calendar-prev').onclick=()=>shiftCalendar(-1,true);$('#home-calendar-next').onclick=()=>shiftCalendar(1,true);$('#home-calendar-today').onclick=()=>{$('#home-calendar-month').value=today().slice(0,7);run(loadHomeCalendar);};$('#home-calendar-open').onclick=()=>{$('#calendar-month').value=$('#home-calendar-month').value||today().slice(0,7);openPage('calendar');};
 for(const type of ['company','personal','participants','leave'])$('#calendar-show-'+type).onchange=renderScheduleCalendar;
 $('#schedule-form').onsubmit=async event=>{event.preventDefault();const form=event.target,button=$('#schedule-save');button.disabled=true;$('#schedule-error').textContent='';try{const body=Object.fromEntries(new FormData(form));body.visibility=form.elements.visibility.value;body.project_id=form.elements.project_id.value?Number(form.elements.project_id.value):null;body.all_day=form.elements.all_day.checked;body.participant_ids=[...scheduleSelected];body.start_time=body.start_time||'';body.end_time=body.end_time||'';if(scheduleEditing)body.version=scheduleEditing.version;await api(scheduleEditing?`schedules/${scheduleEditing.id}/update`:'schedules',body);$('#schedule-dialog').close();await loadCalendar();if(!$('#home').hidden)await loadHomeCalendar();document.dispatchEvent(new Event('schedule-updated'));notice('일정을 저장했습니다.');}catch(error){$('#schedule-error').textContent=error.message;}finally{button.disabled=false;}};
@@ -299,3 +303,7 @@ function setWorkspaceTheme(id){document.documentElement.dataset.theme=workspaceT
 setWorkspaceTheme('home');
 
 function appendDocumentDelete(container,source,row){if(!row.can_delete)return;const button=text('button','문서 삭제','danger document-delete');button.type='button';button.onclick=()=>bmodal('문서 삭제',form=>{form.append(text('p',(row.title||row.kind||'선택한 문서')+'와 결재 처리 이력을 삭제합니다. 복구할 수 없습니다. 대표이사 승인·반려 전까지만 작성자 또는 Admin이 삭제할 수 있습니다.'));bfield(form,'confirm','문서 삭제 확인',{type:'checkbox',required:true});},values=>api(`${source}/${row.id}/delete`,{confirm:values.confirm==='on',expected_status:row.status,expected_created:row.created,expected_version:row.version}),async()=>{$('#document-dialog').close();await refresh();notice('문서를 삭제했습니다.');});container.append(button);}
+
+$('#calendar-week-toggle').onclick=()=>{const content=$('#calendar-week-content'),expanded=content.hidden;content.hidden=!expanded;$('#calendar-week-toggle').setAttribute('aria-expanded',String(expanded));$('#calendar-week-toggle').textContent=expanded?'주간 일정 목록 접기 ▲':'주간 일정 목록 보기 ▼';};
+for(const [id,delta] of [['calendar-week-prev',-7],['calendar-week-next',7]])$('#'+id).onclick=()=>{const day=addCalendarDays(selectedWeek,delta);if(!/^[1-9]\d{3}-/.test(day))return;selectCalendarWeek(day,true);};
+$('#calendar-week-today').onclick=()=>selectCalendarWeek(today(),true);

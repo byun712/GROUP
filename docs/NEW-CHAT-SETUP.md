@@ -10,7 +10,7 @@
 | 저장소·브랜치 | `byun712/GROUP`, 원격 `main` |
 | mount / 실제 경로 | 저장 초안 `GROUP`, 현재 실제 `/workspace/GROUP` |
 | 로컬 브랜치 | 현재 `work`; 새 체크아웃 브랜치 이름은 다시 확인 |
-| 이번 개선 시작 SHA | `5fc41a92137adf2c470f6e4468486578d51791dc`. 실제 사용할 기능은 [최신 화면 개선](compact-business-review.md)을 포함한 main |
+| 이번 개선 시작 SHA | `57404962ccfcf62bcb4b4d6107c186f6c22c0aad`. 실제 사용할 기능은 [최신 프로젝트 요약](project-summary-layout-review.md)을 포함한 main |
 | 최종 인수인계 SHA | 완료 응답의 전체 SHA와 `git log -1 --format=%H -- docs/HANDOFF.md docs/NEW-CHAT-SETUP.md`로 확인. 최신 main은 새로 fetch |
 | 요구 런타임 | package.json: Node.js `>=24`, 내장 `node:sqlite`; 확인 버전 Node 24.22.1 |
 | 패키지 관리자 | npm 11.9.0 확인, `package-lock.json` lockfileVersion 3 |
@@ -110,6 +110,7 @@ export PLAYWRIGHT_MODULE=/opt/codex/runtimes/codex-primary-runtime/dependencies/
 export BROWSER_EXECUTABLE=/usr/bin/chromium
 test -f "$PLAYWRIGHT_MODULE"
 test -x "$BROWSER_EXECUTABLE"
+node scripts/project-summary-layout-smoke.mjs
 node scripts/compact-business-smoke.mjs
 node scripts/project-report-navigation-smoke.mjs
 node scripts/workspace-v2-smoke.mjs
@@ -117,7 +118,7 @@ node scripts/ui-smoke.mjs
 node scripts/home-dashboard-smoke.mjs
 ```
 
-`compact-business`, `project-report-navigation`, `workspace-v2`는 이번 화면 개선에서 다시 실행해 통과했다. `ui-smoke`, `home-dashboard-smoke`는 이전 인수인계에서 통과한 기록이며 이번에 다시 실행한 것으로 세지 않는다. 이번 전체 검증 목록은 [리뷰 문서](compact-business-review.md)에 있다. 각각 임시 DB·테스트 계정·동적 로컬 포트를 사용하고 종료 시 DB를 제거한다. 필요하면 `UI_SCREENSHOT_DIR`을 저장소 밖 별도 경로로 지정한다. 기본 결과 디렉터리는 `/tmp/compact-business`, `/tmp/project-report-navigation`, `/tmp/workspace-v2`, `/tmp/group-home-dashboard-ui`이며 ui-smoke는 지정했을 때만 스크린샷을 저장한다. 실제 Windows/모바일 기기 검증과 Chromium 모바일 폭 검증은 다르다.
+이번 요약 카드 변경에서 `project-summary-layout`, `compact-business`, `project-report-navigation`을 실행해 통과했다. `workspace-v2`는 앞선 회계·고객사 개선에서 통과한 기록이다. `ui-smoke`, `home-dashboard-smoke`는 이전 인수인계에서 통과한 기록이며 이번에 다시 실행한 것으로 세지 않는다. 이번 전체 검증 목록은 [요약 배치 리뷰](project-summary-layout-review.md)에 있다. 각각 임시 DB·테스트 계정·동적 로컬 포트를 사용하고 종료 시 DB를 제거한다. 필요하면 `UI_SCREENSHOT_DIR`을 저장소 밖 별도 경로로 지정한다. 기본 결과 디렉터리는 `/tmp/compact-business`, `/tmp/project-report-navigation`, `/tmp/workspace-v2`, `/tmp/group-home-dashboard-ui`이며 ui-smoke는 지정했을 때만 스크린샷을 저장한다. 실제 Windows/모바일 기기 검증과 Chromium 모바일 폭 검증은 다르다.
 
 ## 환경 변수와 비밀정보
 

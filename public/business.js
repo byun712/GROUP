@@ -20,6 +20,10 @@ function projectProgressBar(value,label){const bar=document.createElement('progr
 // Reuse the existing arithmetic mean of server-calculated task progress everywhere.
 function projectProgress(project){return project.progress;}
 function taskColor(task){return `hsl(${(task.id*137.508%360).toFixed(3)} 58% 42%)`;}
+function scrollProjectSummaryText(event){
+ const target=event.currentTarget;if(target.scrollWidth<=target.clientWidth||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+ event.preventDefault();target.scrollLeft=event.key==='Home'?0:event.key==='End'?target.scrollWidth:target.scrollLeft+(event.key==='ArrowRight'?60:-60);
+}
 function renderProjectOverview(){
  const target=$('#project-overview'),project=businessProjects.find(p=>p.id===selectedProjectId);
  if(!project){target.replaceChildren(text('p','프로젝트를 등록하면 진척률을 확인할 수 있습니다.','empty'));return;}
@@ -27,11 +31,12 @@ function renderProjectOverview(){
  const chart=text('div','','project-donut'),center=text('div','','project-donut-center');center.append(text('strong',progress+'%'),text('span','프로젝트 진척률'));chart.append(center);chart.setAttribute('role','img');chart.dataset.progress=progress;
  const segments=tasks.flatMap((task,i)=>{const start=i/total*100,end=(i+1)/total*100,filled=start+task.progress/total;return [`${taskColor(task)} ${start}% ${filled}%`,`#e8edf3 ${filled}% ${end}%`];});chart.style.background=total?'conic-gradient('+segments.join(',')+')':'#e8edf3';chart.style.setProperty('--segment-angle',(total?360/total:360)+'deg');
  chart.setAttribute('aria-label',`${project.title} · 진척률 ${progress}% (공정 ${done} / ${total})`);
- const summary=text('div','','project-overview-copy'),heading=text('div','','project-summary-heading'),swatch=text('span','','project-color-swatch'),title=text('h3',project.title);
- swatch.style.backgroundColor=project.color;title.tabIndex=0;title.title=project.title;
+ const summary=text('div','','project-summary-footer'),heading=text('div','','workboard-region-heading project-summary-heading'),swatch=text('span','','project-color-swatch'),title=text('h3',project.title);
+ swatch.style.backgroundColor=project.color;title.tabIndex=0;title.title=project.title;title.onkeydown=scrollProjectSummaryText;
  heading.append(swatch,title,text('span',projectStates[project.status],'badge project-status-'+project.status));
- summary.append(text('p',project.start_date+' ~ '+project.end_date,'project-summary-dates'),text('p',`진척률 ${progress}% (공정 ${done} / ${total})`,'overview-caption'));
- const body=text('div','','project-summary-body');body.append(chart,summary);target.replaceChildren(heading,body);
+ summary.tabIndex=0;summary.setAttribute('aria-label','프로젝트 기간과 진척률');summary.onkeydown=scrollProjectSummaryText;
+ summary.append(text('span',project.start_date+' ~ '+project.end_date,'project-summary-dates'),text('span',' / ','project-summary-divider'),text('strong',`진척률 ${progress}% (공정 ${done} / ${total})`,'overview-caption'));
+ const body=text('div','','project-summary-body');body.append(chart);target.replaceChildren(heading,body,summary);
 }
 let historyProject=null,historyNewest=null;
 function renderProjectHistory(project){

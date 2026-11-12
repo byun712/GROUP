@@ -1,6 +1,6 @@
 # ELSOLTEC 업무 보드
 
-새 채팅에서 개발을 이어갈 때는 [최신 인수인계](docs/HANDOFF.md)와 [환경 연결·설치·데이터 보존 안내](docs/NEW-CHAT-SETUP.md)를 먼저 읽으세요. 현재 프로젝트 요약·4개 가로 목록, 회계 5행 표·계정별 XLSX, 고객사 내부 펼침은 [최신 화면 개선 리뷰](docs/compact-business-review.md)가 기준입니다. 세로 그래프·프로젝트 Excel 보고서·우측 하위 메뉴는 [기존 기능 리뷰](docs/project-report-navigation-review.md)를 함께 확인하세요. 아래 누적 변경 기록의 이전 UI 설명을 그대로 복원하지 마세요.
+새 채팅에서 개발을 이어갈 때는 [최신 인수인계](docs/HANDOFF.md)와 [환경 연결·설치·데이터 보존 안내](docs/NEW-CHAT-SETUP.md)를 먼저 읽으세요. 프로젝트 요약의 최신 기준은 [큰 중앙 원형 그래프·하단 한 줄](docs/project-summary-layout-review.md)입니다. 4개 가로 목록, 회계 5행 표·계정별 XLSX, 고객사 내부 펼침은 [최신 화면 개선 리뷰](docs/compact-business-review.md)가 기준입니다. 세로 그래프·프로젝트 Excel 보고서·우측 하위 메뉴는 [기존 기능 리뷰](docs/project-report-navigation-review.md)를 함께 확인하세요. 아래 누적 변경 기록의 이전 UI 설명을 그대로 복원하지 마세요.
 
 Windows/Linux에서 실행하는 회사 그룹웨어 개발 버전입니다. Node.js 24 이상과 내장 SQLite를 사용하며 메일 송수신 및 엑셀·서명 기능에 Nodemailer·Mailparser·ExcelJS·image-size·date-holidays 패키지를 사용합니다. 첫 실행 시 자동 설치하거나 `npm ci`로 설치하세요. 계정·결재·프로젝트·고객사·회계 기록은 `data/group.db`에 저장합니다.
 

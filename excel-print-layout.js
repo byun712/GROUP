@@ -165,3 +165,6 @@ export async function buildFormWorkbook(db,template,document,{saved=false,source
  workbook.views=[{activeTab:0,firstSheet:0}];
  return workbook;
 }
+
+// Shared conservative text metrics for other printable Excel reports.
+export {wrap as wrapPrintText, contentWidth as printContentWidth};

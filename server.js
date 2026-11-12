@@ -7,6 +7,7 @@ import {initializeLeaveManagement,leaveManagementApi,reserveLeave,LEAVE_KINDS,Le
 import {InputError} from './business-common.js';
 import {initializeAttendance,nextAttendanceId,attendanceApi} from './attendance.js';
 import {formExcelApi} from './form-excel.js';
+import {projectExcelApi} from './project-excel.js';
 import {initializeSignatures,decisionHistory,signatureApi} from './signatures.js';
 import {deleteDocumentApi,canDeleteDocument,canRejectAfterApproval,initializeDocumentDeletion,nextDocumentId} from './document-deletion.js';
 import {reportTemplates} from './report-templates.js';
@@ -78,6 +79,7 @@ if(documentWorkflowApi(db,path,req.method,user,body,send))return;
 if(req.method==='POST'&&deleteDocumentApi(db,path,user,body,send))return;
 if(path.startsWith('/api/mail/'))return await mailApi(db,mailState,path,req.method,user,body,send,res,new URL(req.url,'http://localhost'));
 if(path==='/api/customers'||path.startsWith('/api/customers/')||path.startsWith('/api/contacts/'))return crmApi(db,path,req.method,user,body,send,res);
+if(/^\/api\/projects\/\d+\/excel$/.test(path))return await projectExcelApi(db,path,req.method,user,send,res);
 if(path==='/api/projects'||path.startsWith('/api/projects/')||path.startsWith('/api/project-tasks/')||path==='/api/people'||path==='/api/project-options')return projectApi(db,path,req.method,user,body,send);
 if(path==='/api/attendance/calendar'||path==='/api/attendance/export'||/^\/api\/attendance\/\d+\/(update|delete)$/.test(path))return attendanceApi(db,path,req.method,user,body,send,res,new URL(req.url,'http://localhost'));
 if(path==='/api/leave-balance'||path==='/api/leave-preview'||path==='/api/leave-admin'||path.startsWith('/api/leave-admin/'))return await leaveManagementApi(db,path,req.method,user,body,send,res,new URL(req.url,'http://localhost'));

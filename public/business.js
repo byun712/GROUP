@@ -15,7 +15,7 @@ let projectLoadRequest=0;
 async function loadProjects(){const request=++projectLoadRequest,result=await Promise.all([api('projects'),api('customers'),api('people')]);if(request!==projectLoadRequest)return;[businessProjects,businessCustomers,businessPeople]=result;if(!businessProjects.some(p=>p.id===selectedProjectId)){const first=businessProjects[0];selectedProjectId=first?.id||null;if(first)$('#project-month').value=(today()>=first.start_date&&today()<=first.end_date?today():first.start_date).slice(0,7);}renderProjects();}
 function projectProgressBar(value,label){const bar=document.createElement('progress');bar.className='project-progress-bar';bar.max=100;bar.value=value;bar.setAttribute('aria-label',label);return bar;}
 // Reuse the existing arithmetic mean of server-calculated task progress everywhere.
-function projectProgress(project){return project.tasks.length?Math.round(project.tasks.reduce((sum,task)=>sum+task.progress,0)/project.tasks.length):0;}
+function projectProgress(project){return project.progress;}
 function taskColor(task){return `hsl(${(task.id*137.508%360).toFixed(3)} 58% 42%)`;}
 function renderProjectOverview(){
  const target=$('#project-overview'),project=businessProjects.find(p=>p.id===selectedProjectId);
@@ -39,9 +39,29 @@ function renderProjectHistory(project){
 }
 function renderTaskComparison(project){
  const target=$('#project-comparison');target.replaceChildren();
- for(const task of [...(project?.tasks||[])].sort((a,b)=>a.id-b.id)){const row=text('button','','task-comparison-row');row.type='button';row.dataset.comparisonTask=task.id;row.style.setProperty('--task-color',taskColor(task));const heading=text('span','','task-comparison-heading'),dot=text('i','','task-color-dot');heading.append(dot,text('strong',task.title),text('span',task.progress+'%'));const bar=projectProgressBar(task.progress,task.title+' 진척률');row.append(heading,bar);row.onclick=()=>showTaskHistory(task,project);target.append(row);}
- emptyCards(target,project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.');
+ const tasks=[...(project?.tasks||[])].sort((a,b)=>a.id-b.id);
+ if(!tasks.length){target.append(text('p',project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.','empty'));return;}
+ const chart=text('div','','task-column-chart'),axis=text('div','','task-column-axis'),scroll=text('div','','task-column-scroll'),series=text('div','','task-column-series');
+ axis.setAttribute('aria-hidden','true');scroll.tabIndex=0;scroll.setAttribute('aria-label','공정 그래프 가로 스크롤 · 방향키로 공정 선택');
+ for(const tick of [0,25,50,75,100]){const label=text('span',tick+'%');label.style.bottom=(tick*1.4-8)+'px';axis.append(label);}
+ for(const task of tasks){
+  const button=text('button','','task-column');button.type='button';button.dataset.comparisonTask=task.id;button.style.setProperty('--task-color',taskColor(task));button.style.setProperty('--task-progress',task.progress);
+  button.title=task.title+' · '+task.progress+'%';button.setAttribute('aria-label',task.title+' · 진척률 '+task.progress+'% · 공정 상세 열기');
+  const plot=text('span','','task-column-plot'),bar=text('span','','task-column-bar'),value=text('strong',task.progress+'%','task-column-value'),name=text('span',task.title,'task-column-name');
+  bar.dataset.progress=task.progress;plot.append(bar,value);button.append(plot,name);button.onclick=()=>showTaskHistory(task,project);series.append(button);
+ }
+ scroll.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const buttons=[...series.children],index=buttons.indexOf(document.activeElement);event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:Math.max(0,Math.min(buttons.length-1,index+(event.key==='ArrowRight'?1:-1)))]?.focus();};
+ scroll.append(series);chart.append(axis,scroll);target.append(chart);
 }
+$('#project-report').onclick=async()=>{
+ const project=businessProjects.find(p=>p.id===selectedProjectId),status=$('#project-report-status'),button=$('#project-report');status.hidden=false;
+ if(!project){status.textContent='엑셀 보고서를 내려받을 프로젝트를 선택하세요.';return;}
+ button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='보고서 생성 중…';status.textContent=project.title+' · 전체 기간의 공정과 수행 기록을 준비하고 있습니다.';
+ try{await downloadWorkbook('projects/'+project.id+'/excel');status.textContent=project.title+' · 엑셀 보고서를 다운로드했습니다.';}
+ catch(error){status.textContent='엑셀 보고서 생성 실패: '+error.message;}
+ finally{button.disabled=false;button.setAttribute('aria-busy','false');button.textContent='엑셀 보고서';}
+};
+
 function renderProjects(){
  renderProjectOverview();
  const target=$('#project-cards');target.replaceChildren();

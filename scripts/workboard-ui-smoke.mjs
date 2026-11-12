@@ -67,7 +67,7 @@ try{
   await verify('A 진척률 검증',65,'A 전용 공정');
   await page.locator('#project-month').fill('2026-11');await page.locator('#project-month').dispatchEvent('change');
   await page.getByRole('checkbox',{name:'A 전용 공정 완료 (2026-11-14)',exact:true}).check();await page.waitForFunction(()=>document.querySelector('.project-donut')?.dataset.progress==='70');
-  assert.equal(await page.locator('#project-history progress').evaluate(e=>String(e.value)),'70');assert.equal(await page.locator('#project-comparison progress').evaluate(e=>e.value),70);
+  assert.equal(await page.locator('#project-history progress').evaluate(e=>String(e.value)),'70');assert.equal(await page.locator('#project-comparison .task-column-bar').evaluate(e=>Number(e.dataset.progress)),70);
   await page.locator('#project-history .work-card-title').click();await page.locator('#business-dialog').getByRole('button',{name:'공정 수정 · 수행 내역 작성',exact:true}).click();
   const form=page.locator('#business-dialog form');await form.locator('[name=end_date]').fill('2026-11-28');await form.locator('[name=end_date]').dispatchEvent('change');await form.locator('[name=change_reason]').fill('일정 연장 검증');await form.getByRole('button',{name:'저장',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.project-donut')?.dataset.progress==='50');
   await page.locator('#project-history .work-card-title').click();await page.locator('.task-schedule-history summary').click();assert.match(await page.locator('#business-dialog').textContent(),/일정 연장 검증/);await page.keyboard.press('Escape');

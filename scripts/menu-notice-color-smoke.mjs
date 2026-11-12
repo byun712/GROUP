@@ -21,7 +21,7 @@ try{
   const dimensions=()=>page.locator('.app-launcher button').evaluateAll(nodes=>nodes.filter(n=>!n.hidden).map(n=>({width:n.offsetWidth,height:n.offsetHeight})));
   const homeSizes=await dimensions();
   for(const key of keys){await page.locator(`.app-launcher [data-open=${key}]`).click();await page.mouse.move(0,0);assert.deepEqual(await dimensions(),homeSizes,`launcher dimensions: ${key}`);}
-  for(const [parent,menu] of [['approval','draft-menu'],['reports','report-menu']]){await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),true);await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),false);await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).evaluate(e=>!!e.closest('.sidebar')),true);}
+  for(const [parent,menu] of [['approval','draft-menu'],['reports','report-menu']]){await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),false);await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),true);assert.equal(await page.locator('#'+menu).evaluate(e=>e.parentElement===document.body),true);await page.locator(`.sidebar [data-tab=${parent}]`).click();assert.equal(await page.locator('#'+menu).isVisible(),false);}
   assert.equal(await page.locator('#new-draft,#new-report').count(),0);
 
  }

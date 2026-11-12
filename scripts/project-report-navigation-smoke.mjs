@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict';
+import {mkdtempSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import ExcelJS from 'exceljs';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+const dir=mkdtempSync(join(tmpdir(),'project-columns-'));process.env.DATA_DIR=dir;process.env.NODE_ENV='development';process.env.OFFICE_IP='127.0.0.1';delete process.env.PUBLIC_ORIGIN;
+const {server,addUser}=await import('../test-support/server.js');for(const [login,name,role] of [['soltec@elsoltec.com','김관리','manager'],['staff','이직원','employee'],['director','박이사','manager']])addUser(login,name,role,'columns-test-123');
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
+try{
+ browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||undefined,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1366,height:768}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:'+server.address().port);
+ const login=async name=>{await page.locator('#login [name=login]').fill(name);await page.locator('#login [name=password]').fill('columns-test-123');await page.locator('#login button').click();await page.locator('#workspace').waitFor();};await login('soltec@elsoltec.com');
+ const open=async name=>{await page.locator(name==='home'?'.sidebar [data-tab=home]':'.app-launcher [data-open='+name+']').click();await page.locator('#'+name).waitFor();};
+ await open('projects');await page.locator('#project-report').click();assert.match(await page.locator('#project-report-status').textContent(),/선택하세요/);
+ await page.evaluate(async()=>{
+  const base={start_date:'2026-11-01',end_date:'2027-02-28',description:'실제 공정 진척률과 수행 기록 보고서'};
+  const p=await api('projects',{...base,title:'차세대 제어 시스템 개발'}),q=await api('projects',{...base,title:'빈 프로젝트'}),many=await api('projects',{...base,title:'장문 공정과 다수 공정 검증'});
+  const tasks=[];for(const [name,days,complete] of [['요구사항 검토',20,0],['시제품 설계 및 안정성 검증',20,13],['최종 품질 시험',2,2]]){const t=await api(`projects/${p.id}/tasks`,{title:name,start_date:'2026-11-01',end_date:'2026-11-'+String(days).padStart(2,'0'),assignee_id:me.user.id});tasks.push(t.id);for(let d=1;d<=complete;d++)await api(`project-tasks/${t.id}/completion`,{date:'2026-11-'+String(d).padStart(2,'0'),completed:true,version:d});}
+  for(let i=0;i<14;i++)await api(`projects/${many.id}/tasks`,{title:'매우 긴 한글 공정명과 영문 Design '.repeat(3)+i,start_date:'2026-12-01',end_date:'2026-12-03',assignee_id:me.user.id,completed:i===13});
+  window.fixture={p:p.id,q:q.id,many:many.id,tasks};await loadProjects();selectedProjectId=p.id;renderProjects();
+ });
+ const select=async title=>{await page.locator('#project-cards .work-card-title').getByText(title,{exact:true}).click();};
+ const out=process.env.UI_SCREENSHOT_DIR||'/tmp/project-report-navigation';mkdirSync(out,{recursive:true});
+ for(const viewport of [{width:1366,height:768},{width:1920,height:1080},{width:390,height:844}]){
+  await page.setViewportSize(viewport);await open('projects');await select('차세대 제어 시스템 개발');
+  assert.equal(await page.locator('.project-donut-center strong').textContent(),'55%');
+  assert.deepEqual(await page.locator('.task-column-bar').evaluateAll(es=>es.map(e=>Number(e.dataset.progress))),[0,65,100]);
+  const heights=await page.locator('.task-column-bar').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().height));assert.deepEqual(heights,[0,91,140]);const bottoms=await page.locator('.task-column-bar').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().bottom));assert.ok(Math.max(...bottoms)-Math.min(...bottoms)<1);assert.ok(Math.abs(bottoms[0]-await page.locator('.task-column-axis').evaluate(e=>e.getBoundingClientRect().bottom))<1);
+  const top=await page.locator('.task-column-scroll').evaluate(e=>e.getBoundingClientRect().top);assert.ok(await page.locator('.task-column-value').last().evaluate((e,top)=>e.getBoundingClientRect().top>=top,top));
+  const gradient=await page.locator('.project-donut').evaluate(e=>getComputedStyle(e).backgroundImage);for(const color of await page.locator('.task-column-bar').evaluateAll(es=>es.map(e=>getComputedStyle(e).backgroundColor)))assert.ok(gradient.includes(color));
+  const panels=await page.locator('.project-workboard-top>.workboard-region').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().toJSON()));assert.ok(panels.every(p=>p.height===322));if(viewport.width>1150)assert.ok(panels.every(p=>p.top===panels[0].top));
+  await page.locator('.task-column').last().focus();await page.keyboard.press('Enter');assert.match(await page.locator('#business-dialog-title').textContent(),/최종 품질 시험/);await page.keyboard.press('Escape');
+  await page.locator('.project-workboard-top').screenshot({path:join(out,'columns-'+viewport.width+'.png')});
+  await select('장문 공정과 다수 공정 검증');const scroll=page.locator('.task-column-scroll');assert.ok(await scroll.evaluate(e=>e.scrollWidth>e.clientWidth));await scroll.focus();await page.keyboard.press('End');assert.equal(await page.locator('.task-column').last().evaluate(e=>e===document.activeElement),true);assert.ok(await scroll.evaluate(e=>e.scrollLeft>0));await page.locator('.project-workboard-top').screenshot({path:join(out,'many-columns-'+viewport.width+'.png')});
+  await select('빈 프로젝트');assert.equal(await page.locator('.project-donut-center strong').textContent(),'0%');assert.equal(await page.locator('.task-column').count(),0);await page.locator('#project-comparison .empty').waitFor();
+  for(const [parent,menu] of [['approval','draft-menu'],['reports','report-menu'],['users','users-submenu']]){
+   await open('home');const button=page.locator('.sidebar [data-tab='+parent+']');await button.click();assert.equal(await page.locator('#'+parent).isVisible(),true);assert.equal(await page.locator('#'+menu).isVisible(),false);
+   const before=await page.locator('.content').evaluate(e=>({width:e.offsetWidth,left:e.offsetLeft}));await button.click();await page.locator('#'+menu).waitFor();assert.deepEqual(await page.locator('.content').evaluate(e=>({width:e.offsetWidth,left:e.offsetLeft})),before);
+   assert.equal(await page.locator('#'+menu).evaluate(e=>e.parentElement===document.body&&getComputedStyle(e).position==='fixed'),true);
+   const rect=await page.locator('#'+menu).boundingBox();assert.ok(rect.x>=7&&rect.y>=7&&rect.x+rect.width<=viewport.width-7&&rect.y+rect.height<=viewport.height-7,JSON.stringify(rect));
+   if(viewport.width>1000){const anchor=await button.boundingBox();assert.ok(rect.x>=anchor.x+anchor.width);}
+   assert.equal(await button.getAttribute('aria-expanded'),'true');await page.screenshot({path:join(out,parent+'-menu-'+viewport.width+'.png')});
+   await page.keyboard.press('End');assert.equal(await page.locator('#'+menu+' button:visible').last().evaluate(e=>e===document.activeElement),true);await page.keyboard.press('Escape');assert.equal(await button.evaluate(e=>e===document.activeElement),true);assert.equal(await page.locator('#'+menu).isVisible(),false);
+   await button.click();await button.click();assert.equal(await page.locator('#'+menu).isVisible(),false);
+   await button.click();await page.locator('#'+parent+' h2').first().click();assert.equal(await page.locator('#'+menu).isVisible(),false);
+  }
+  const arrows=await page.locator('.sidebar nav>button:has(.sidebar-menu-label)').evaluateAll(es=>es.map(e=>{const b=e.getBoundingClientRect(),a=e.querySelector('.sidebar-expand-indicator').getBoundingClientRect(),l=e.querySelector('.sidebar-menu-label');return {right:b.right-a.right,center:Math.abs(b.top+b.height/2-a.top-a.height/2),font:getComputedStyle(l).fontSize,width:l.getBoundingClientRect().width};}));assert.ok(arrows.every(a=>Math.abs(a.right-arrows[0].right)<1&&a.center<1&&a.font===arrows[0].font&&a.width===arrows[0].width),JSON.stringify(arrows));
+  assert.equal(await page.locator('.user-menu-label').textContent(),'사용자');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ }
+ await page.setViewportSize({width:1366,height:768});
+ await open('approval');await page.locator('.sidebar [data-tab=approval]').click();await page.locator('.sidebar [data-tab=reports]').click();assert.equal(await page.locator('#draft-menu').isVisible(),false);assert.equal(await page.locator('#report-menu').isVisible(),false);await page.locator('.sidebar [data-tab=reports]').click();await page.locator('#report-menu button').last().focus();await page.keyboard.press('Tab');assert.equal(await page.locator('#report-menu').isVisible(),false);
+ for(const [parent,menu] of [['approval','draft-menu'],['reports','report-menu']]){
+  await open(parent);const items=await page.locator('#'+menu+' button').evaluateAll(es=>es.map(e=>({id:e.dataset.template||e.dataset.reportTemplate,name:e.textContent})));
+  for(const item of items){await page.locator('.sidebar [data-tab='+parent+']').click();await page.locator('#'+menu+' button').getByText(item.name,{exact:true}).click();assert.equal(await page.locator('#'+menu).isVisible(),false);assert.equal(await page.locator('.app-launcher .active').getAttribute('data-open'),parent);assert.equal(await page.locator('#'+menu+' button.active').textContent(),item.name);await page.locator('.sidebar [data-tab='+parent+']').click();assert.equal(await page.locator('#'+parent).isVisible(),true);assert.equal(await page.locator('#'+menu).isVisible(),false);}
+ }
+ await open('approval');await page.locator('.sidebar [data-tab=approval]').click();await page.locator('#draft-menu [data-template=general]').click();await page.locator('#draft-form [name=title]').fill('우측 메뉴 기안 상신');await page.locator('#draft-form [name=content]').fill('실제 상신 동작 검증');await page.locator('#draft-submit').click();await page.locator('#approval-documents').getByText('우측 메뉴 기안 상신',{exact:true}).waitFor();
+ for(const [id,child] of [['[data-tab=leaveAdmin]','leaveAdmin'],['#approval-settings-button','approvalSettings'],['#seal-menu','sealSettings']]){await open('users');await page.locator('.sidebar [data-tab=users]').click();await page.locator('#users-submenu '+id).click();await page.locator('#'+child).waitFor();assert.equal(await page.locator('.app-launcher .active').getAttribute('data-open'),'users');await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users').isVisible(),true);assert.equal(await page.locator('#users-submenu').isVisible(),false);}
+ await open('projects');await select('차세대 제어 시스템 개발');await page.locator('#project-month').fill('2026-11');await page.locator('#project-month').dispatchEvent('change');await page.getByRole('checkbox',{name:'시제품 설계 및 안정성 검증 완료 (2026-11-14)',exact:true}).check();await page.waitForFunction(()=>document.querySelectorAll('.task-column-bar')[1]?.dataset.progress==='70');assert.equal(await page.locator('.project-donut-center strong').textContent(),'57%');
+ await page.route('**/api/projects/*/excel',async route=>{await new Promise(resolve=>setTimeout(resolve,200));await route.continue();});const download=page.waitForEvent('download');await page.locator('#project-report').click();assert.equal(await page.locator('#project-report').isDisabled(),true);await select('빈 프로젝트');const file=await download;const book=new ExcelJS.Workbook();await book.xlsx.readFile(await file.path());assert.equal(book.worksheets[0].getCell('C3').value,'차세대 제어 시스템 개발');await page.locator('#project-report-status').filter({hasText:'다운로드했습니다'}).waitFor();await page.unroute('**/api/projects/*/excel');
+ await page.route('**/api/projects/*/excel',route=>route.fulfill({status:500,json:{error:'검증용 생성 오류'}}));await page.locator('#project-report').click();await page.locator('#project-report-status').filter({hasText:'검증용 생성 오류'}).waitFor();assert.equal(await page.locator('#project-report').isEnabled(),true);await page.unroute('**/api/projects/*/excel');
+ for(const [name,count] of [['staff',0],['director',1]]){await page.locator('#logout').click();await login(name);await page.locator('.sidebar [data-tab=users]').click();await page.locator('.sidebar [data-tab=users]').click();assert.equal(await page.locator('#users-submenu button:visible').count(),count);if(!count)assert.match(await page.locator('#users-submenu').textContent(),/사용 가능한 하위 메뉴가 없습니다/);await page.keyboard.press('Escape');}
+ assert.deepEqual(errors,[]);writeFileSync(join(out,'result.txt'),'PASS: 0/65/100 column heights and colors, many/long/empty tasks, three viewports, two-click flyout navigation/keyboard/permissions, all forms and draft submission, completion refresh, XLSX snapshot/download/error.\n');console.log('PASS: project column charts, Excel download, unified flyouts and permissions at 1366/1920/390');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));rmSync(dir,{recursive:true,force:true});}

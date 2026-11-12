@@ -23,13 +23,14 @@ try{
  const selectMonth=async month=>{await page.locator('#home-calendar-month').fill(month);await page.locator('#home-calendar-month').dispatchEvent('change');await ready(month);};
  const checkFit=async label=>{
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  await page.waitForFunction(()=>document.documentElement.scrollHeight<=innerHeight+1);
+  await page.evaluate(()=>window.scrollTo(0,0));
   const result=await page.evaluate(()=>{
    const rect=e=>e.getBoundingClientRect().toJSON(),grid=document.querySelector('#home-calendar-grid'),cells=[...grid.querySelectorAll('.calendar-cell:not(.calendar-day)')];
-   return {width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,grid:rect(grid),footer:rect(document.querySelector('footer')),cards:[...document.querySelectorAll('#home .home-summary-card')].map(rect),dates:[...grid.querySelectorAll('.calendar-date,.home-calendar-more:not([hidden])')].map(e=>({child:rect(e),parent:rect(e.closest('.calendar-cell'))})),chips:[...grid.querySelectorAll('.calendar-event:not([hidden])')].map(e=>({child:rect(e),parent:rect(e.parentElement)})),cellHeights:cells.map(e=>rect(e).height)};
+   return {width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,grid:rect(grid),footer:rect(document.querySelector('footer')),cards:[...document.querySelectorAll('#home .home-summary-card')].map(rect),dates:[...grid.querySelectorAll('.calendar-date,.home-calendar-more:not([hidden])')].map(e=>({child:rect(e),parent:rect(e.closest('.calendar-cell'))})),lists:[...grid.querySelectorAll('.calendar-day-items')].map(e=>({child:rect(e),parent:rect(e.parentElement),overflow:getComputedStyle(e).overflowY})),cellHeights:cells.map(e=>rect(e).height)};
   });
-  assert.ok(result.scrollWidth<=result.width,label+' horizontal overflow');assert.ok(result.footer.bottom<=result.height+1,label+' footer');assert.ok(result.grid.bottom<=result.height,label+' calendar');
-  for(const {child,parent} of [...result.dates,...result.chips])assert.ok(child.top>=parent.top&&child.bottom<=parent.bottom+1&&child.right<=parent.right+1,label+' clipped date/event '+JSON.stringify({child,parent}));
+  assert.ok(result.scrollWidth<=result.width,label+' horizontal overflow');const expectedHeight=Math.max(220,result.height-result.grid.top-28);assert.ok(Math.abs(result.grid.height-expectedHeight)<1,label+' viewport allocation with 220px minimum');assert.ok(result.footer.bottom<=Math.max(result.height,result.grid.bottom+28)+1,label+' footer');if(expectedHeight>220)assert.ok(result.grid.bottom<=result.height,label+' calendar');
+  for(const {child,parent} of [...result.dates,...result.lists])assert.ok(child.top>=parent.top&&child.bottom<=parent.bottom+1&&child.right<=parent.right+1,label+' clipped date/event '+JSON.stringify({child,parent}));
+  for(const list of result.lists)assert.equal(list.overflow,'auto',label+' scrollable day events');
   assert.ok(Math.max(...result.cellHeights)-Math.min(...result.cellHeights)<1,label+' equal week heights');
   return result;
  };
@@ -41,16 +42,21 @@ try{
  }
  assert.ok(largeHeight>smallHeight,'calendar expands on taller screens');
  await page.setViewportSize({width:1280,height:720});await selectMonth('2026-08');
- const cell=page.locator('#home-calendar-grid .calendar-cell').filter({has:page.getByRole('button',{name:'2026-08-03 일정 등록',exact:true})}),more=cell.locator('.home-calendar-more');await more.waitFor();
- const hidden=await cell.locator('.calendar-event[hidden]').count();assert.ok(hidden>0);assert.equal(await more.innerText(),'+'+hidden+' 더보기');
- await more.focus();await page.keyboard.press('Enter');await page.locator('#home-day-dialog').waitFor();assert.equal(await page.locator('#home-day-events .home-day-event').count(),8);assert.equal(await page.locator('#home-day-events img').count(),0);await page.screenshot({path:join(out,'all-day-events.png'),fullPage:true});
- await page.keyboard.press('Escape');assert.equal(await more.evaluate(e=>e===document.activeElement),true);
- await more.click();await page.locator('#home-day-events').getByRole('button',{name:'검토 일정 8 <img src=x>',exact:true}).click();assert.equal(await page.locator('#schedule-form [name=title]').inputValue(),'검토 일정 8 <img src=x>');await page.keyboard.press('Escape');
- await more.click();await page.locator('#home-day-add').click();assert.equal(await page.locator('#schedule-form [name=start_date]').inputValue(),'2026-08-03');await page.keyboard.press('Escape');
+ // Current calendar retains all events in a keyboard-scrollable day list.
+ const cell=page.locator('#home-calendar-grid [data-date="2026-08-03"]'),items=cell.locator('.calendar-day-items');
+ assert.equal(await items.locator('.calendar-event').count(),8);assert.equal(await items.locator('[hidden],img').count(),0);
+ assert.equal(await page.locator('.home-calendar-more').count(),0);
+ assert.ok(await items.evaluate(e=>e.scrollHeight>e.clientHeight));
+ await items.focus();await page.keyboard.press('End');await page.waitForFunction(()=>document.querySelector('#home-calendar-grid [data-date="2026-08-03"] .calendar-day-items').scrollTop>0);
+ await items.getByRole('button',{name:'검토 일정 8 <img src=x>',exact:true}).click();
+ assert.equal(await page.locator('#schedule-form [name=title]').inputValue(),'검토 일정 8 <img src=x>');
+ await page.locator('#schedule-form [name=title]').fill('수정한 일정 8');await page.locator('#schedule-save').click();await items.getByRole('button',{name:'수정한 일정 8',exact:true}).waitFor();
+ await cell.getByRole('button',{name:'2026-08-03 일정 등록',exact:true}).click();assert.equal(await page.locator('#schedule-form [name=start_date]').inputValue(),'2026-08-03');await page.keyboard.press('Escape');
+ await page.screenshot({path:join(out,'scrollable-day-events.png'),fullPage:true});
  // Status messages also leave the dates and controls accessible.
  await page.evaluate(()=>notice('일정을 저장했습니다.'));await checkFit('status message');
  await page.locator('.sidebar [data-tab=users]').click();await page.locator('#users').waitFor();assert.equal(await page.evaluate(()=>document.documentElement.dataset.page),'users');
  await page.locator('.sidebar [data-tab=home]').click();await ready('2026-08');await checkFit('return home');
- await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>[...document.querySelectorAll('#home-calendar-grid .calendar-event')].every(e=>!e.hidden));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await more.isVisible(),false);await page.screenshot({path:join(out,'home-mobile.png'),fullPage:true});
- assert.deepEqual(errors,[]);console.log('PASS: combined attendance/approval panel, removed banner, larger notices; desktop viewport fit for 4/5/6 weeks, responsive rows, reachable sidebar, no clipped controls; overflow schedules, keyboard/focus, full titles, edit/register and mobile.');
+ await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>[...document.querySelectorAll('#home-calendar-grid .calendar-event')].every(e=>!e.hidden));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await items.locator('.calendar-event').count(),8);await page.screenshot({path:join(out,'home-mobile.png'),fullPage:true});
+ assert.deepEqual(errors,[]);console.log('PASS: combined attendance/approval panel, removed banner, larger notices; desktop viewport fit for 4/5/6 weeks, responsive rows, reachable sidebar, no clipped controls; scrollable schedules, keyboard, safe full titles, edit/register and mobile.');
 }finally{await browser?.close();await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}

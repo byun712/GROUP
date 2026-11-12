@@ -59,9 +59,9 @@ try{
   await open('projects');await page.locator('#project-cards button').first().waitFor();
   const select=async name=>{await page.locator('#project-cards .work-card-title').getByText(name,{exact:true}).click();};
   const verify=async(name,value,task)=>{await select(name);assert.equal(await page.locator('.project-donut-center strong').textContent(),value+'%');assert.equal(await page.locator('.project-donut').getAttribute('data-progress'),String(value));if(task)assert.match(await page.locator('.project-donut').evaluate(e=>e.style.background),new RegExp(value+'%'));assert.equal(await page.locator('#project-overview h3').textContent(),name);if(task)assert.match(await page.locator('#project-history').textContent(),new RegExp(task));};
-  await verify('A 진척률 검증',65,'A 전용 공정');assert.doesNotMatch(await page.locator('#project-history').textContent(),/B 전용/);assert.match(await page.locator('#project-overview').textContent(),/완료 0 \/ 전체 1/);
+  await verify('A 진척률 검증',65,'A 전용 공정');assert.doesNotMatch(await page.locator('#project-history').textContent(),/B 전용/);assert.match(await page.locator('#project-overview').textContent(),/공정 0 \/ 1/);
   await verify('B 완료 프로젝트',100,'B 전용 완료 공정');assert.doesNotMatch(await page.locator('#project-history').textContent(),/A 전용/);
-  await verify('C 빈 프로젝트',0);assert.match(await page.locator('#project-overview').textContent(),/등록된 공정 없음/);assert.equal(await page.locator('#project-history .work-card').count(),0);
+  await verify('C 빈 프로젝트',0);assert.match(await page.locator('#project-overview').textContent(),/진척률 0% \(공정 0 \/ 0\)/);assert.equal(await page.locator('#project-history .work-card').count(),0);
   await page.evaluate(async()=>{const original=api;let release,first=true;api=async(path,...args)=>{const result=await original(path,...args);if(path==='projects'&&first){first=false;await new Promise(r=>release=r);for(const p of result)p.title='오래된 응답';}return result;};const pending=loadProjects();while(!release)await new Promise(r=>setTimeout(r,5));await loadProjects();selectedProjectId=window.fixture.b;renderProjects();release();await pending;api=original;});
   assert.equal(await page.locator('#project-overview h3').textContent(),'B 완료 프로젝트');
   await verify('A 진척률 검증',65,'A 전용 공정');

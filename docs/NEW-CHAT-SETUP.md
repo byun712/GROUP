@@ -10,7 +10,7 @@
 | 저장소·브랜치 | `byun712/GROUP`, 원격 `main` |
 | mount / 실제 경로 | 저장 초안 `GROUP`, 현재 실제 `/workspace/GROUP` |
 | 로컬 브랜치 | 현재 `work`; 새 체크아웃 브랜치 이름은 다시 확인 |
-| 기능 기준 SHA | `7989e9ecb0569542beeb1638d4608e82e7ce1331` 및 이후 테스트 수정 `78c5aa15a51545eb2c97022e1adf9b14abcde5fe` |
+| 이번 개선 시작 SHA | `5fc41a92137adf2c470f6e4468486578d51791dc`. 실제 사용할 기능은 [최신 화면 개선](compact-business-review.md)을 포함한 main |
 | 최종 인수인계 SHA | 완료 응답의 전체 SHA와 `git log -1 --format=%H -- docs/HANDOFF.md docs/NEW-CHAT-SETUP.md`로 확인. 최신 main은 새로 fetch |
 | 요구 런타임 | package.json: Node.js `>=24`, 내장 `node:sqlite`; 확인 버전 Node 24.22.1 |
 | 패키지 관리자 | npm 11.9.0 확인, `package-lock.json` lockfileVersion 3 |
@@ -66,7 +66,7 @@ npm ci --cache /workspace/.cache/npm --no-audit --no-fund
 npm test
 ```
 
-현재 43개 통과. 테스트는 각각 별도 임시 DATA_DIR을 사용한다. 테스트 0개 실행이나 skipped를 통과로 세지 않는다.
+현재 44개 통과. 테스트는 각각 별도 임시 DATA_DIR을 사용한다. 테스트 0개 실행이나 skipped를 통과로 세지 않는다.
 
 ### 5. 개발 서버 — 검증용 임시 데이터만 사용
 
@@ -110,13 +110,14 @@ export PLAYWRIGHT_MODULE=/opt/codex/runtimes/codex-primary-runtime/dependencies/
 export BROWSER_EXECUTABLE=/usr/bin/chromium
 test -f "$PLAYWRIGHT_MODULE"
 test -x "$BROWSER_EXECUTABLE"
+node scripts/compact-business-smoke.mjs
 node scripts/project-report-navigation-smoke.mjs
 node scripts/workspace-v2-smoke.mjs
 node scripts/ui-smoke.mjs
 node scripts/home-dashboard-smoke.mjs
 ```
 
-네 스크립트를 현재 코드에서 실제 실행해 모두 통과했다. 각각 임시 DB·테스트 계정·동적 로컬 포트를 사용하고 종료 시 DB를 제거한다. 필요하면 `UI_SCREENSHOT_DIR`을 저장소 밖 별도 경로로 지정한다. 기본 결과 디렉터리는 `/tmp/project-report-navigation`, `/tmp/workspace-v2`, `/tmp/group-home-dashboard-ui`이며 ui-smoke는 지정했을 때만 스크린샷을 저장한다. 실제 Windows/모바일 기기 검증과 Chromium 모바일 폭 검증은 다르다.
+`compact-business`, `project-report-navigation`, `workspace-v2`는 이번 화면 개선에서 다시 실행해 통과했다. `ui-smoke`, `home-dashboard-smoke`는 이전 인수인계에서 통과한 기록이며 이번에 다시 실행한 것으로 세지 않는다. 이번 전체 검증 목록은 [리뷰 문서](compact-business-review.md)에 있다. 각각 임시 DB·테스트 계정·동적 로컬 포트를 사용하고 종료 시 DB를 제거한다. 필요하면 `UI_SCREENSHOT_DIR`을 저장소 밖 별도 경로로 지정한다. 기본 결과 디렉터리는 `/tmp/compact-business`, `/tmp/project-report-navigation`, `/tmp/workspace-v2`, `/tmp/group-home-dashboard-ui`이며 ui-smoke는 지정했을 때만 스크린샷을 저장한다. 실제 Windows/모바일 기기 검증과 Chromium 모바일 폭 검증은 다르다.
 
 ## 환경 변수와 비밀정보
 
@@ -158,3 +159,5 @@ node scripts/home-dashboard-smoke.mjs
 3. **기존 GROUP 재사용 불가**: 기존 환경과 데이터를 보존한다. 위 저장소/main, Node >=24, npm ci, 네트워크 대상, 설치/시작 지침으로 별도 새 관리형 환경을 준비한다. 사용자 화면 조작을 도구로 대신할 수 없다면 사용자가 환경 선택/생성을 해야 함을 명확히 알린다. 같은 이름만으로 연결하지 않고 새 환경의 실제 체크아웃·HEAD·명령·테스트를 확인한다.
 
 현재 에이전트가 확인한 것은 환경 API·초안·명령 실행이다. 사용자 화면의 실제 메뉴 경로·버튼 위치는 확인하지 않았다. 새 작업에 GROUP의 준비된 설정과 byun712/GROUP/main을 지정하고, 저장된 설치·시작 지침을 검토하여 재사용 가능한 상태로 게시하는 조작은 사용자 화면에서 수행한다. 게시 기능이 제공되는 경우 완료 상태를 확인한 뒤 새 작업에서 실제 검증한다. 이 문서의 저장이나 GitHub push를 게시 대용으로 취급하지 않는다.
+
+이번 화면 개선에서는 사용자가 알린 게시 완료 상태를 존중하고 환경 설정 저장·게시를 반복하지 않았다. GitHub의 최신 코드와 이 문서는 새 작업에서 별도로 fetch하고 검증한다.

@@ -7,6 +7,7 @@ import {initializeLeaveManagement,leaveManagementApi,reserveLeave,LEAVE_KINDS,Le
 import {InputError} from './business-common.js';
 import {initializeAttendance,nextAttendanceId,attendanceApi} from './attendance.js';
 import {formExcelApi} from './form-excel.js';
+import {accountingExcelApi} from './accounting-excel.js';
 import {projectExcelApi} from './project-excel.js';
 import {initializeSignatures,decisionHistory,signatureApi} from './signatures.js';
 import {deleteDocumentApi,canDeleteDocument,canRejectAfterApproval,initializeDocumentDeletion,nextDocumentId} from './document-deletion.js';
@@ -83,6 +84,7 @@ if(/^\/api\/projects\/\d+\/excel$/.test(path))return await projectExcelApi(db,pa
 if(path==='/api/projects'||path.startsWith('/api/projects/')||path.startsWith('/api/project-tasks/')||path==='/api/people'||path==='/api/project-options')return projectApi(db,path,req.method,user,body,send);
 if(path==='/api/attendance/calendar'||path==='/api/attendance/export'||/^\/api\/attendance\/\d+\/(update|delete)$/.test(path))return attendanceApi(db,path,req.method,user,body,send,res,new URL(req.url,'http://localhost'));
 if(path==='/api/leave-balance'||path==='/api/leave-preview'||path==='/api/leave-admin'||path.startsWith('/api/leave-admin/'))return await leaveManagementApi(db,path,req.method,user,body,send,res,new URL(req.url,'http://localhost'));
+if(path==='/api/accounting/accounts/excel')return await accountingExcelApi(db,req.method,user,send,res);
 if(path==='/api/accounting'||path.startsWith('/api/accounting/'))return accountingApi(db,path,req.method,user,body,send);
 if(path==='/api/user-options'||path==='/api/users'||path.startsWith('/api/users/'))return accountApi(db,path,req.method,user,body,send,addUser,mailState);
 if(path==='/api/approval-settings'&&req.method==='GET'){

@@ -1,0 +1,902 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "before": {
+      "scroll": [
+        0,
+        0
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 213,
+          "y": 211,
+          "width": 362.65625,
+          "height": 322,
+          "top": 211,
+          "right": 575.65625,
+          "bottom": 533,
+          "left": 213
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 591.65625,
+          "y": 211,
+          "width": 362.671875,
+          "height": 322,
+          "top": 211,
+          "right": 954.328125,
+          "bottom": 533,
+          "left": 591.65625
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 970.328125,
+          "y": 211,
+          "width": 362.65625,
+          "height": 322,
+          "top": 211,
+          "right": 1332.984375,
+          "bottom": 533,
+          "left": 970.328125
+        },
+        {
+          "selector": "#project-cards",
+          "x": 213,
+          "y": 557,
+          "width": 1120,
+          "height": 125,
+          "top": 557,
+          "right": 1333,
+          "bottom": 682,
+          "left": 213
+        },
+        {
+          "selector": "#project-detail",
+          "x": 196,
+          "y": 715,
+          "width": 1154,
+          "height": 1671,
+          "top": 715,
+          "right": 1350,
+          "bottom": 2386,
+          "left": 196
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 196,
+          "y": 70,
+          "width": 1154,
+          "height": 52,
+          "top": 70,
+          "right": 1350,
+          "bottom": 122,
+          "left": 196
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": 58,
+          "width": 180,
+          "height": 2371,
+          "top": 58,
+          "right": 180,
+          "bottom": 2429,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 58,
+          "top": 0,
+          "right": 1366,
+          "bottom": 58,
+          "left": 0
+        }
+      ]
+    },
+    "opened": {
+      "scroll": [
+        0,
+        0
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 213,
+          "y": 211,
+          "width": 362.65625,
+          "height": 322,
+          "top": 211,
+          "right": 575.65625,
+          "bottom": 533,
+          "left": 213
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 591.65625,
+          "y": 211,
+          "width": 362.671875,
+          "height": 322,
+          "top": 211,
+          "right": 954.328125,
+          "bottom": 533,
+          "left": 591.65625
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 970.328125,
+          "y": 211,
+          "width": 362.65625,
+          "height": 322,
+          "top": 211,
+          "right": 1332.984375,
+          "bottom": 533,
+          "left": 970.328125
+        },
+        {
+          "selector": "#project-cards",
+          "x": 213,
+          "y": 557,
+          "width": 1120,
+          "height": 125,
+          "top": 557,
+          "right": 1333,
+          "bottom": 682,
+          "left": 213
+        },
+        {
+          "selector": "#project-detail",
+          "x": 196,
+          "y": 715,
+          "width": 1154,
+          "height": 1671,
+          "top": 715,
+          "right": 1350,
+          "bottom": 2386,
+          "left": 196
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 196,
+          "y": 70,
+          "width": 1154,
+          "height": 52,
+          "top": 70,
+          "right": 1350,
+          "bottom": 122,
+          "left": 196
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": 58,
+          "width": 180,
+          "height": 2371,
+          "top": 58,
+          "right": 180,
+          "bottom": 2429,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 58,
+          "top": 0,
+          "right": 1366,
+          "bottom": 58,
+          "left": 0
+        }
+      ]
+    },
+    "closed": {
+      "scroll": [
+        0,
+        0
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 213,
+          "y": 211,
+          "width": 362.65625,
+          "height": 322,
+          "top": 211,
+          "right": 575.65625,
+          "bottom": 533,
+          "left": 213
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 591.65625,
+          "y": 211,
+          "width": 362.671875,
+          "height": 322,
+          "top": 211,
+          "right": 954.328125,
+          "bottom": 533,
+          "left": 591.65625
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 970.328125,
+          "y": 211,
+          "width": 362.65625,
+          "height": 322,
+          "top": 211,
+          "right": 1332.984375,
+          "bottom": 533,
+          "left": 970.328125
+        },
+        {
+          "selector": "#project-cards",
+          "x": 213,
+          "y": 557,
+          "width": 1120,
+          "height": 125,
+          "top": 557,
+          "right": 1333,
+          "bottom": 682,
+          "left": 213
+        },
+        {
+          "selector": "#project-detail",
+          "x": 196,
+          "y": 715,
+          "width": 1154,
+          "height": 1671,
+          "top": 715,
+          "right": 1350,
+          "bottom": 2386,
+          "left": 196
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 196,
+          "y": 70,
+          "width": 1154,
+          "height": 52,
+          "top": 70,
+          "right": 1350,
+          "bottom": 122,
+          "left": 196
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": 58,
+          "width": 180,
+          "height": 2371,
+          "top": 58,
+          "right": 180,
+          "bottom": 2429,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 58,
+          "top": 0,
+          "right": 1366,
+          "bottom": 58,
+          "left": 0
+        }
+      ]
+    }
+  },
+  {
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "before": {
+      "scroll": [
+        0,
+        0
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 213,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 760.328125,
+          "bottom": 645.390625,
+          "left": 213
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 776.328125,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 1323.65625,
+          "bottom": 645.390625,
+          "left": 776.328125
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 1339.65625,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 1886.984375,
+          "bottom": 645.390625,
+          "left": 1339.65625
+        },
+        {
+          "selector": "#project-cards",
+          "x": 213,
+          "y": 669.390625,
+          "width": 1674,
+          "height": 125,
+          "top": 669.390625,
+          "right": 1887,
+          "bottom": 794.390625,
+          "left": 213
+        },
+        {
+          "selector": "#project-detail",
+          "x": 196,
+          "y": 827.390625,
+          "width": 1708,
+          "height": 1671,
+          "top": 827.390625,
+          "right": 1904,
+          "bottom": 2498.390625,
+          "left": 196
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 196,
+          "y": 70,
+          "width": 1708,
+          "height": 58,
+          "top": 70,
+          "right": 1904,
+          "bottom": 128,
+          "left": 196
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": 58,
+          "width": 180,
+          "height": 2483.390625,
+          "top": 58,
+          "right": 180,
+          "bottom": 2541.390625,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 58,
+          "top": 0,
+          "right": 1920,
+          "bottom": 58,
+          "left": 0
+        }
+      ]
+    },
+    "opened": {
+      "scroll": [
+        0,
+        0
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 213,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 760.328125,
+          "bottom": 645.390625,
+          "left": 213
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 776.328125,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 1323.65625,
+          "bottom": 645.390625,
+          "left": 776.328125
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 1339.65625,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 1886.984375,
+          "bottom": 645.390625,
+          "left": 1339.65625
+        },
+        {
+          "selector": "#project-cards",
+          "x": 213,
+          "y": 669.390625,
+          "width": 1674,
+          "height": 125,
+          "top": 669.390625,
+          "right": 1887,
+          "bottom": 794.390625,
+          "left": 213
+        },
+        {
+          "selector": "#project-detail",
+          "x": 196,
+          "y": 827.390625,
+          "width": 1708,
+          "height": 1671,
+          "top": 827.390625,
+          "right": 1904,
+          "bottom": 2498.390625,
+          "left": 196
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 196,
+          "y": 70,
+          "width": 1708,
+          "height": 58,
+          "top": 70,
+          "right": 1904,
+          "bottom": 128,
+          "left": 196
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": 58,
+          "width": 180,
+          "height": 2483.390625,
+          "top": 58,
+          "right": 180,
+          "bottom": 2541.390625,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 58,
+          "top": 0,
+          "right": 1920,
+          "bottom": 58,
+          "left": 0
+        }
+      ]
+    },
+    "closed": {
+      "scroll": [
+        0,
+        0
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 213,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 760.328125,
+          "bottom": 645.390625,
+          "left": 213
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 776.328125,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 1323.65625,
+          "bottom": 645.390625,
+          "left": 776.328125
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 1339.65625,
+          "y": 217,
+          "width": 547.328125,
+          "height": 428.390625,
+          "top": 217,
+          "right": 1886.984375,
+          "bottom": 645.390625,
+          "left": 1339.65625
+        },
+        {
+          "selector": "#project-cards",
+          "x": 213,
+          "y": 669.390625,
+          "width": 1674,
+          "height": 125,
+          "top": 669.390625,
+          "right": 1887,
+          "bottom": 794.390625,
+          "left": 213
+        },
+        {
+          "selector": "#project-detail",
+          "x": 196,
+          "y": 827.390625,
+          "width": 1708,
+          "height": 1671,
+          "top": 827.390625,
+          "right": 1904,
+          "bottom": 2498.390625,
+          "left": 196
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 196,
+          "y": 70,
+          "width": 1708,
+          "height": 58,
+          "top": 70,
+          "right": 1904,
+          "bottom": 128,
+          "left": 196
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": 58,
+          "width": 180,
+          "height": 2483.390625,
+          "top": 58,
+          "right": 180,
+          "bottom": 2541.390625,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 58,
+          "top": 0,
+          "right": 1920,
+          "bottom": 58,
+          "left": 0
+        }
+      ]
+    }
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "before": {
+      "scroll": [
+        0,
+        1237
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 24,
+          "y": 56.5,
+          "width": 342,
+          "height": 322,
+          "top": 56.5,
+          "right": 366,
+          "bottom": 378.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 24,
+          "y": 390.5,
+          "width": 342,
+          "height": 322,
+          "top": 390.5,
+          "right": 366,
+          "bottom": 712.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 24,
+          "y": 724.5,
+          "width": 342,
+          "height": 322,
+          "top": 724.5,
+          "right": 366,
+          "bottom": 1046.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-cards",
+          "x": 24,
+          "y": 1070.5,
+          "width": 342,
+          "height": 125,
+          "top": 1070.5,
+          "right": 366,
+          "bottom": 1195.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-detail",
+          "x": 10,
+          "y": 1225.5,
+          "width": 370,
+          "height": 1685.375,
+          "top": 1225.5,
+          "right": 380,
+          "bottom": 2910.875,
+          "left": 10
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 10,
+          "y": -409.5,
+          "width": 370,
+          "height": 348,
+          "top": -409.5,
+          "right": 380,
+          "bottom": -61.5,
+          "left": 10
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": -1177,
+          "width": 390,
+          "height": 755.5,
+          "top": -1177,
+          "right": 390,
+          "bottom": -421.5,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": -1237,
+          "width": 390,
+          "height": 60,
+          "top": -1237,
+          "right": 390,
+          "bottom": -1177,
+          "left": 0
+        }
+      ]
+    },
+    "opened": {
+      "scroll": [
+        0,
+        1237
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 24,
+          "y": 56.5,
+          "width": 342,
+          "height": 322,
+          "top": 56.5,
+          "right": 366,
+          "bottom": 378.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 24,
+          "y": 390.5,
+          "width": 342,
+          "height": 322,
+          "top": 390.5,
+          "right": 366,
+          "bottom": 712.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 24,
+          "y": 724.5,
+          "width": 342,
+          "height": 322,
+          "top": 724.5,
+          "right": 366,
+          "bottom": 1046.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-cards",
+          "x": 24,
+          "y": 1070.5,
+          "width": 342,
+          "height": 125,
+          "top": 1070.5,
+          "right": 366,
+          "bottom": 1195.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-detail",
+          "x": 10,
+          "y": 1225.5,
+          "width": 370,
+          "height": 1685.375,
+          "top": 1225.5,
+          "right": 380,
+          "bottom": 2910.875,
+          "left": 10
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 10,
+          "y": -409.5,
+          "width": 370,
+          "height": 348,
+          "top": -409.5,
+          "right": 380,
+          "bottom": -61.5,
+          "left": 10
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": -1177,
+          "width": 390,
+          "height": 755.5,
+          "top": -1177,
+          "right": 390,
+          "bottom": -421.5,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": -1237,
+          "width": 390,
+          "height": 60,
+          "top": -1237,
+          "right": 390,
+          "bottom": -1177,
+          "left": 0
+        }
+      ]
+    },
+    "closed": {
+      "scroll": [
+        0,
+        1237
+      ],
+      "selected": 4,
+      "compact": 160,
+      "boards": [
+        {
+          "selector": "#project-overview",
+          "x": 24,
+          "y": 56.5,
+          "width": 342,
+          "height": 322,
+          "top": 56.5,
+          "right": 366,
+          "bottom": 378.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-comparison-panel",
+          "x": 24,
+          "y": 390.5,
+          "width": 342,
+          "height": 322,
+          "top": 390.5,
+          "right": 366,
+          "bottom": 712.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-history-panel",
+          "x": 24,
+          "y": 724.5,
+          "width": 342,
+          "height": 322,
+          "top": 724.5,
+          "right": 366,
+          "bottom": 1046.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-cards",
+          "x": 24,
+          "y": 1070.5,
+          "width": 342,
+          "height": 125,
+          "top": 1070.5,
+          "right": 366,
+          "bottom": 1195.5,
+          "left": 24
+        },
+        {
+          "selector": "#project-detail",
+          "x": 10,
+          "y": 1225.5,
+          "width": 370,
+          "height": 1685.375,
+          "top": 1225.5,
+          "right": 380,
+          "bottom": 2910.875,
+          "left": 10
+        },
+        {
+          "selector": ".app-launcher",
+          "x": 10,
+          "y": -409.5,
+          "width": 370,
+          "height": 348,
+          "top": -409.5,
+          "right": 380,
+          "bottom": -61.5,
+          "left": 10
+        },
+        {
+          "selector": ".sidebar",
+          "x": 0,
+          "y": -1177,
+          "width": 390,
+          "height": 755.5,
+          "top": -1177,
+          "right": 390,
+          "bottom": -421.5,
+          "left": 0
+        },
+        {
+          "selector": ".topbar",
+          "x": 0,
+          "y": -1237,
+          "width": 390,
+          "height": 60,
+          "top": -1237,
+          "right": 390,
+          "bottom": -1177,
+          "left": 0
+        }
+      ]
+    }
+  }
+]

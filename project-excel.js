@@ -8,6 +8,9 @@ const taskStates={todo:'예정',doing:'진행',blocked:'보류',done:'완료'};
 const koreanTime=value=>value?new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(value)):'';
 const font=(bold=false,size=SIZE)=>({name:'Malgun Gothic',size,bold,color:{argb:INK},charset:129});
 const segmenter=new Intl.Segmenter('ko',{granularity:'grapheme'});
+// ExcelJS reads OOXML escapes but does not write them. Preserve literal escape
+// sequences and CR/control characters instead of XML newline normalization/loss.
+const excelText=value=>typeof value==='string'?value.replace(/_x[0-9a-fA-F]{4}_/g,match=>'_x005F_'+match.slice(1)).replace(/[\u0000-\u0008\u000b-\u000d\u000e-\u001f]/g,char=>'_x'+char.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0')+'_'):value;
 
 // Split only between graphemes. Joining the chunks reproduces the original text,
 // including newlines, spaces and tabs; soft wrapping never changes stored content.
@@ -45,7 +48,7 @@ function metadata(sheet,row,label,value,numberFormat){
  const last=sheet.columnCount,width=printContentWidth(sheet,3,last),chunks=typeof value==='number'?[value]:splitReportText(value,width);
  for(const part of chunks){
   sheet.mergeCells(row,1,row,2);sheet.mergeCells(row,3,row,last);
-  const key=sheet.getCell(row,1),cell=sheet.getCell(row,3);key.value=label;cell.value=part;
+  const key=sheet.getCell(row,1),cell=sheet.getCell(row,3);key.value=label;cell.value=excelText(part);
   styleCell(key,{header:true});styleCell(cell,{numeric:typeof part==='number'});if(numberFormat)cell.numFmt=numberFormat;
   sheet.getRow(row).height=Math.max(24,wrapPrintText(part,width,SIZE).length*LINE_HEIGHT+6);row++;
  }
@@ -66,24 +69,47 @@ function recordRows(sheet,row,values,formats={},repeatColumns=[]){
   let lines=1;
   chunks.forEach((parts,i)=>{
    const value=parts[n]??(repeatColumns.includes(i)&&parts.length===1?parts[0]:''),cell=sheet.getCell(row,i+1);
-   cell.value=value;styleCell(cell,{numeric:typeof value==='number'});if(formats[i])cell.numFmt=formats[i];
+   cell.value=excelText(value);styleCell(cell,{numeric:typeof value==='number'});if(formats[i])cell.numFmt=formats[i];
    lines=Math.max(lines,wrapPrintText(value,printContentWidth(sheet,i+1,i+1),SIZE).length);
   });
   sheet.getRow(row).height=Math.max(24,lines*LINE_HEIGHT+6);row++;
  }
  return row;
 }
-function finish(sheet,header,end){
- sheet.autoFilter={from:{row:header,column:1},to:{row:Math.max(header,end),column:sheet.columnCount}};
+function finish(sheet,header,end,{hierarchy=false,keepTogether=[]}={}){
+ // Sorting a hierarchy would separate its children. Flat audit sheets retain filters.
+ if(!hierarchy)sheet.autoFilter={from:{row:header,column:1},to:{row:Math.max(header,end),column:sheet.columnCount}};
  sheet.pageSetup.printArea=`A1:${sheet.getColumn(sheet.columnCount).letter}${end}`;
  // A4 landscape, conservative printable height. Break between bounded rows;
  // repeat the table header on continuation pages, never shrink to one page tall.
+ const headerHeight=sheet.getRow(header).height||32,groups=new Map(keepTogether.map(([start,last])=>[start,Array.from({length:last-start+1},(_,i)=>sheet.getRow(start+i).height||23).reduce((a,b)=>a+b,0)]));
  let used=0;
  for(let r=1;r<=end;r++){
-  const height=sheet.getRow(r).height||23;
-  if(used+height>480){sheet.getRow(r-1).addPageBreak();used=sheet.getRow(header).height||32;}
+  const height=sheet.getRow(r).height||23,group=groups.get(r);
+  if(r>1&&((group&&group<=480-headerHeight&&used+group>480)||used+height>480)){sheet.getRow(r-1).addPageBreak();used=headerHeight;}
   used+=height;
  }
+}
+function projectWorkEntries(project){
+ const automaticLegacy=new Set(['완료 체크로 공정 완료','완료 체크 해제','공정 등록','공정 정보 수정']),taskIds=new Set(project.tasks.map(t=>t.id));
+ return project.history.filter(h=>taskIds.has(h.task_id)&&h.notes?.trim()&&(h.kind==='work'||h.kind==='legacy'&&!automaticLegacy.has(h.notes.trim())))
+  .sort((a,b)=>(a.work_date||'').localeCompare(b.work_date||'')||a.task_id-b.task_id||a.created.localeCompare(b.created)||a.id-b.id);
+}
+function inlineWorkRows(sheet,row,task,number,entry){
+ const groups=[{start:2,end:6,value:entry.notes,indent:1},{start:7,end:8,value:'수행일자\n'+(entry.work_date||'미기록')},{start:9,end:10,value:'작성자\n'+entry.actor_name}];
+ const parts=groups.map(g=>splitReportText(g.value,printContentWidth(sheet,g.start,g.end)-(g.indent?16:0)));
+ const count=Math.max(...parts.map(p=>p.length));
+ for(let n=0;n<count;n++){
+  const marker=sheet.getCell(row,1);marker.value='↳ '+number;styleCell(marker);marker.font=font(false,9);let lines=1;
+  groups.forEach((g,i)=>{
+   sheet.mergeCells(row,g.start,row,g.end);const cell=sheet.getCell(row,g.start),value=parts[i][n]??(i>0&&parts[i].length===1?parts[i][0]:'');
+   cell.value=excelText(value);styleCell(cell);cell.font={...font(false,10),color:{argb:'FF526176'}};cell.alignment.indent=g.indent||0;
+   if(i===0)cell.note=`공정 #${task.id} · ${task.title}\n수행 기록 #${entry.id}\n기록 작성일시 (한국 시간): ${koreanTime(entry.created)}`;
+   lines=Math.max(lines,wrapPrintText(value,printContentWidth(sheet,g.start,g.end)-(g.indent?16:0),SIZE).length);
+  });
+  sheet.getRow(row).height=Math.max(24,lines*LINE_HEIGHT+6);row++;
+ }
+ return row;
 }
 export function buildProjectWorkbook(project,generatedAt=new Date()){
  const workbook=new ExcelJS.Workbook();workbook.creator='ELSOLTEC';workbook.created=generatedAt;
@@ -95,16 +121,20 @@ export function buildProjectWorkbook(project,generatedAt=new Date()){
   ['참여자',project.participants.map(p=>p.name).join(', ')||'없음'],['생성일시 (한국 시간)',koreanTime(generatedAt)],...(project.description?[['프로젝트 설명',project.description]]:[])
  ])row=metadata(main,row,label,value,format);
  row++;const mainHeader=row;row=tableHeader(main,row,['순번','공정명','시작일','종료일','담당자','참여자','전체 일수','완료 일수','진척률','상태']);
- const tasks=[...project.tasks].sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.id-b.id);
- tasks.forEach((task,index)=>{row=recordRows(main,row,[index+1,task.title,task.start_date,task.end_date,task.assignee,task.participants.map(p=>p.name).join(', ')||'없음',task.total_days,task.completed_days,task.progress/100,taskStates[task.status]||task.status],{0:'0',6:'0',7:'0',8:'0%'},[0,2,3,4,6,7,8,9]);});
+ const tasks=[...project.tasks].sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.id-b.id),entries=projectWorkEntries(project),byTask=new Map(tasks.map(t=>[t.id,[]])),keepTogether=[];
+ for(const entry of entries)byTask.get(entry.task_id).push(entry);
+ tasks.forEach((task,index)=>{
+  const start=row;
+  row=recordRows(main,row,[index+1,task.title,task.start_date,task.end_date,task.assignee,task.participants.map(p=>p.name).join(', ')||'없음',task.total_days,task.completed_days,task.progress/100,taskStates[task.status]||task.status],{0:'0',6:'0',7:'0',8:'0%'},[0,2,3,4,6,7,8,9]);
+  for(let r=start;r<row;r++)main.getRow(r).eachCell(cell=>{cell.font=font(true);cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:LIGHT}};});
+  const children=byTask.get(task.id);if(children.length)keepTogether.push([start,row]);
+  for(const entry of children)row=inlineWorkRows(main,row,task,index+1,entry);
+ });
  if(!tasks.length)row=metadata(main,row,'공정 현황','등록된 공정 없음');
- finish(main,mainHeader,row-1);
+ finish(main,mainHeader,row-1,{hierarchy:true,keepTogether});
 
  const work=makeSheet(workbook,'공정 수행 내역',[12,25,54,13,23,9,12],project);
  row=metadata(work,3,'프로젝트명',project.title);const workHeader=row;row=tableHeader(work,row,['수행일자','공정명','수행 내용','작성자','기록 작성일시 (한국 시간)','기록 ID','기록 구분']);
- const automaticLegacy=new Set(['완료 체크로 공정 완료','완료 체크 해제','공정 등록','공정 정보 수정']);
- const entries=project.history.filter(h=>(h.kind==='work'||h.kind==='legacy'&&!automaticLegacy.has(h.notes))&&h.notes?.trim())
-  .sort((a,b)=>(a.work_date||'').localeCompare(b.work_date||'')||a.task_id-b.task_id||a.created.localeCompare(b.created)||a.id-b.id);
  for(const h of entries)row=recordRows(work,row,[h.work_date||'미기록',h.task_title,h.notes,h.actor_name,koreanTime(h.created),h.id,h.kind==='legacy'?'이전 기록':'수행 기록'],{5:'0'},[0,1,3,4,5,6]);
  if(!entries.length)row=metadata(work,row,'수행 기록','등록된 공정 수행 내역 없음');
  finish(work,workHeader,row-1);

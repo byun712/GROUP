@@ -49,12 +49,17 @@ function renderProjectHistory(project){
  emptyCards(history,project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.');const newest=history.firstElementChild?.dataset.taskHistory;history.scrollTop=historyProject===project?.id&&historyNewest===newest?scrollTop:0;historyProject=project?.id;historyNewest=newest;
 }
 function renderTaskComparison(project){
- const target=$('#project-comparison');target.replaceChildren();
- const tasks=[...(project?.tasks||[])].sort((a,b)=>a.id-b.id);
- if(!tasks.length){target.append(text('p',project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.','empty'));return;}
+ const target=$('#project-comparison'),same=target.dataset.projectId===String(project?.id||''),scroll=same?target.querySelector('.task-column-scroll')?.scrollLeft||0:0;
+ target.dataset.projectId=project?.id||'';target.replaceChildren();$('#project-comparison-expand').disabled=!project;
+ if(!project?.tasks.length)target.append(text('p',project?'등록된 공정이 없습니다.':'프로젝트를 선택해 주세요.','empty'));
+ else {target.append(taskComparisonChart(project));target.querySelector('.task-column-scroll').scrollLeft=scroll;}
+ if(typeof syncExpandedComparison==='function')syncExpandedComparison();
+}
+function taskComparisonChart(project,source=project.tasks){
+ const tasks=[...source].sort((a,b)=>a.id-b.id);
  const chart=text('div','','task-column-chart'),axis=text('div','','task-column-axis'),scroll=text('div','','task-column-scroll'),series=text('div','','task-column-series');
  axis.setAttribute('aria-hidden','true');scroll.tabIndex=0;scroll.setAttribute('aria-label','공정 그래프 가로 스크롤 · 방향키로 공정 선택');
- for(const tick of [0,25,50,75,100]){const label=text('span',tick+'%');label.style.bottom=(tick*1.4-8)+'px';axis.append(label);}
+ for(const tick of [0,25,50,75,100]){const label=text('span',tick+'%');label.style.bottom=`calc(var(--comparison-plot-height,140px) * ${tick/100} - 8px)`;axis.append(label);}
  for(const task of tasks){
   const button=text('button','','task-column');button.type='button';button.dataset.comparisonTask=task.id;button.style.setProperty('--task-color',taskColor(task));button.style.setProperty('--task-progress',task.progress);
   button.title=task.title+' · '+task.progress+'%';button.setAttribute('aria-label',task.title+' · 진척률 '+task.progress+'% · 공정 상세 열기');
@@ -62,7 +67,7 @@ function renderTaskComparison(project){
   bar.dataset.progress=task.progress;plot.append(bar,value);button.append(plot,name);button.onclick=()=>showTaskHistory(task,project);series.append(button);
  }
  scroll.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const buttons=[...series.children],index=buttons.indexOf(document.activeElement);event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:Math.max(0,Math.min(buttons.length-1,index+(event.key==='ArrowRight'?1:-1)))]?.focus();};
- scroll.append(series);chart.append(axis,scroll);target.append(chart);
+ scroll.append(series);chart.append(axis,scroll);return chart;
 }
 $('#project-report').onclick=async()=>{
  const project=businessProjects.find(p=>p.id===selectedProjectId),status=$('#project-report-status'),button=$('#project-report');status.hidden=false;

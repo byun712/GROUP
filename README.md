@@ -1,6 +1,6 @@
 # ELSOLTEC 업무 보드
 
-새 채팅에서 개발을 이어갈 때는 [최신 인수인계](docs/HANDOFF.md)와 [환경 연결·설치·데이터 보존 안내](docs/NEW-CHAT-SETUP.md)를 먼저 읽으세요. 프로젝트 요약의 최신 기준은 [큰 중앙 원형 그래프·하단 한 줄](docs/project-summary-layout-review.md)입니다. 4개 가로 목록, 회계 5행 표·계정별 XLSX, 고객사 내부 펼침은 [최신 화면 개선 리뷰](docs/compact-business-review.md)가 기준입니다. 세로 그래프·프로젝트 Excel 보고서·우측 하위 메뉴는 [기존 기능 리뷰](docs/project-report-navigation-review.md)를 함께 확인하세요. 아래 누적 변경 기록의 이전 UI 설명을 그대로 복원하지 마세요.
+새 채팅에서 개발을 이어갈 때는 [최신 인수인계](docs/HANDOFF.md)와 [환경 연결·설치·데이터 보존 안내](docs/NEW-CHAT-SETUP.md)를 먼저 읽으세요. 프로젝트 요약의 최신 기준은 [큰 중앙 원형 그래프·하단 한 줄](docs/project-summary-layout-review.md)입니다. 4개 가로 목록, 회계 5행 표·계정별 XLSX, 고객사 내부 펼침은 [최신 화면 개선 리뷰](docs/compact-business-review.md)가 기준입니다. 공정 그래프 확장·접기와 메인 보고서의 공정별 수행 기록은 [최신 기능·검증](docs/project-expansion-report-review.md)을 확인하세요. 세로 그래프·우측 하위 메뉴는 [기존 기능 리뷰](docs/project-report-navigation-review.md)를 함께 확인하세요. 아래 누적 변경 기록의 이전 UI 설명을 그대로 복원하지 마세요.
 
 Windows/Linux에서 실행하는 회사 그룹웨어 개발 버전입니다. Node.js 24 이상과 내장 SQLite를 사용하며 메일 송수신 및 엑셀·서명 기능에 Nodemailer·Mailparser·ExcelJS·image-size·date-holidays 패키지를 사용합니다. 첫 실행 시 자동 설치하거나 `npm ci`로 설치하세요. 계정·결재·프로젝트·고객사·회계 기록은 `data/group.db`에 저장합니다.
 
@@ -99,11 +99,12 @@ DB에는 개인정보·명함·재무 데이터·비밀번호 해시가 있으�
 
 ## 검증
 
-`npm test` **44개 통과**. 계정별 XLSX의 전체 장부 일치·권한과 고객사 삭제 참조/버전/ID 보존 검증도 포함합니다. Admin 최초 지정/위임/마지막 관리자 보호, 역할·세션, 이사 본인 승인, 공정 권한·수행 이력, 고객사·명함 접근, 회계 균형/중복 방지, 기존 결재·일정·출퇴근·백업과 인력 정보 포함 근태 CSV를 검증합니다.
+`npm test` **45개 통과**. 계층형 프로젝트 XLSX의 공정-기록 연결·원문 보존·전체 범위·페이지 나눔 검증을 포함합니다. 계정별 XLSX의 전체 장부 일치·권한과 고객사 삭제 참조/버전/ID 보존 검증도 포함합니다. Admin 최초 지정/위임/마지막 관리자 보호, 역할·세션, 이사 본인 승인, 공정 권한·수행 이력, 고객사·명함 접근, 회계 균형/중복 방지, 기존 결재·일정·출퇴근·백업과 인력 정보 포함 근태 CSV를 검증합니다.
 
 선택적 브라우저 검증(별도 Playwright/Chromium 필요):
 
 ```sh
+node scripts/project-expansion-smoke.mjs
 node scripts/ui-smoke.mjs
 node scripts/business-smoke.mjs
 node scripts/profile-smoke.mjs

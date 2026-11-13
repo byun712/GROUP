@@ -1,6 +1,6 @@
 # 새 채팅의 GROUP 연결·실행 안내
 
-2026-11-12 현재 머신과 저장된 초안을 실제 조회한 기록이다. [HANDOFF.md](HANDOFF.md)의 기능·권한·검증 기준과 함께 읽는다. 문서에 기록된 경로가 새 머신에도 있다고 가정하지 말고 확인한다.
+환경 설정 표는 2026-11-12 저장된 초안의 실제 조회 기록이다. 2026-11-13에는 현재 실행 환경의 running/connected 상태와 쉘·Git·런타임·테스트를 다시 확인했으며 초안 저장/게시를 수행하지 않았다. [HANDOFF.md](HANDOFF.md)의 기능·권한·검증 기준과 함께 읽는다. 문서에 기록된 경로가 새 머신에도 있다고 가정하지 말고 확인한다.
 
 ## 선택할 값과 현재 확인 범위
 
@@ -10,7 +10,7 @@
 | 저장소·브랜치 | `byun712/GROUP`, 원격 `main` |
 | mount / 실제 경로 | 저장 초안 `GROUP`, 현재 실제 `/workspace/GROUP` |
 | 로컬 브랜치 | 현재 `work`; 새 체크아웃 브랜치 이름은 다시 확인 |
-| 이번 개선 시작 SHA | `57404962ccfcf62bcb4b4d6107c186f6c22c0aad`. 실제 사용할 기능은 [최신 프로젝트 요약](project-summary-layout-review.md)을 포함한 main |
+| 이번 개선 시작 SHA | `42248a1ffd911a7399efbff22f0d3bbe826c7d78`. 실제 사용할 기능은 [그래프 확장·계층형 보고서](project-expansion-report-review.md)을 포함한 main |
 | 최종 인수인계 SHA | 완료 응답의 전체 SHA와 `git log -1 --format=%H -- docs/HANDOFF.md docs/NEW-CHAT-SETUP.md`로 확인. 최신 main은 새로 fetch |
 | 요구 런타임 | package.json: Node.js `>=24`, 내장 `node:sqlite`; 확인 버전 Node 24.22.1 |
 | 패키지 관리자 | npm 11.9.0 확인, `package-lock.json` lockfileVersion 3 |
@@ -66,7 +66,9 @@ npm ci --cache /workspace/.cache/npm --no-audit --no-fund
 npm test
 ```
 
-현재 44개 통과. 테스트는 각각 별도 임시 DATA_DIR을 사용한다. 테스트 0개 실행이나 skipped를 통과로 세지 않는다.
+현재 45개 통과. 테스트는 각각 별도 임시 DATA_DIR을 사용한다. 테스트 0개 실행이나 skipped를 통과로 세지 않는다.
+
+그래프 확장과 계층형 XLSX의 재현 명령·스크린샷은 [최신 검증 문서](project-expansion-report-review.md#실행-테스트)에 있다. 브라우저 도구 경로는 현재 머신에서 확인한 것이며 새 환경에서 다시 검사한다.
 
 ### 5. 개발 서버 — 검증용 임시 데이터만 사용
 

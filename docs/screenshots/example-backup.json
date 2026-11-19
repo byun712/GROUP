@@ -1,0 +1,210 @@
+{
+  "format": "group-todo-local-backup",
+  "schemaVersion": 1,
+  "exportedAt": "2026-11-19T08:45:27.885Z",
+  "timeZone": "Asia/Seoul",
+  "data": {
+    "projects": [
+      {
+        "id": "c6b89c25-fee8-4ffd-b40f-f668676854f0",
+        "createdAt": "2026-11-19T08:45:20.106Z",
+        "updatedAt": "2026-11-19T08:45:20.106Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": false,
+        "name": "로컬 신규 프로젝트",
+        "description": ""
+      },
+      {
+        "id": "f229ecd8-ab7b-42d7-9bea-de36840fb4d0",
+        "createdAt": "2026-11-19T08:45:11.771Z",
+        "updatedAt": "2026-11-19T08:45:11.771Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "name": "브랜드 웹사이트 리뉴얼",
+        "description": "로컬 예시 프로젝트입니다. 실제 GROUP 데이터와 연결되지 않았습니다."
+      }
+    ],
+    "processes": [
+      {
+        "id": "8661c2ed-7868-465d-b475-06d4fd25d126",
+        "createdAt": "2026-11-19T08:45:11.772Z",
+        "updatedAt": "2026-11-19T08:45:11.772Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "name": "콘텐츠 기획",
+        "projectId": "f229ecd8-ab7b-42d7-9bea-de36840fb4d0"
+      },
+      {
+        "id": "9c7d7633-003d-42a4-b0c7-8b76ff511c48",
+        "createdAt": "2026-11-19T08:45:20.233Z",
+        "updatedAt": "2026-11-19T08:45:20.233Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": false,
+        "name": "새 공정",
+        "projectId": "c6b89c25-fee8-4ffd-b40f-f668676854f0"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "0b07d261-193c-4ab3-9f21-13a5e998c31e",
+        "createdAt": "2026-11-19T08:45:11.781Z",
+        "updatedAt": "2026-11-19T08:45:11.781Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "title": "레퍼런스 자료 검토하고 의견 남기기",
+        "description": "기한이 지난 할 일도 오늘 보기에서 놓치지 않도록 모았습니다.",
+        "status": "todo",
+        "priority": "high",
+        "dueDate": "2026-11-17",
+        "projectId": "f229ecd8-ab7b-42d7-9bea-de36840fb4d0",
+        "processId": "8661c2ed-7868-465d-b475-06d4fd25d126",
+        "completedAt": null
+      },
+      {
+        "id": "4a670712-0d10-4a99-9db0-18ae41c10bb0",
+        "createdAt": "2026-11-19T08:45:11.784Z",
+        "updatedAt": "2026-11-19T08:45:11.784Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "title": "아이디어 메모를 모아 읽기 쉬운 문서로 정리하고 다음 회의에서 함께 검토할 질문 목록 작성하기",
+        "description": "긴 제목은 오른쪽 상세 패널에서 전체를 읽고 수정할 수 있습니다.\n기한을 정하지 않은 개인 할 일입니다.",
+        "status": "todo",
+        "priority": "low",
+        "dueDate": null,
+        "projectId": null,
+        "processId": null,
+        "completedAt": null
+      },
+      {
+        "id": "5dcef37b-9418-4486-9359-ac6902055409",
+        "createdAt": "2026-11-19T08:45:11.775Z",
+        "updatedAt": "2026-11-19T08:45:11.775Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "title": "이번 주에 집중할 세 가지 정리",
+        "description": "종이에 적어 둔 생각을 한곳에 모아 보세요.\n완료율은 GROUP 공정 진척률과 별개입니다.",
+        "status": "todo",
+        "priority": "medium",
+        "dueDate": "2026-11-19",
+        "projectId": null,
+        "processId": null,
+        "completedAt": null
+      },
+      {
+        "id": "9e6e1edd-7985-44d3-9b52-fc77516a643e",
+        "createdAt": "2026-11-19T08:45:11.781Z",
+        "updatedAt": "2026-11-19T08:45:11.781Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "title": "다음 주 킥오프 준비",
+        "description": "논의할 내용과 필요한 자료를 정리합니다.",
+        "status": "todo",
+        "priority": "medium",
+        "dueDate": "2026-11-22",
+        "projectId": "f229ecd8-ab7b-42d7-9bea-de36840fb4d0",
+        "processId": null,
+        "completedAt": null
+      },
+      {
+        "id": "ab2cec35-e7e4-48da-8e14-4204113b60d2",
+        "createdAt": "2026-11-19T08:45:20.983Z",
+        "updatedAt": "2026-11-19T08:45:26.468Z",
+        "version": 3,
+        "externalRef": null,
+        "sample": false,
+        "title": "오프라인에서 수정한 작업",
+        "description": "업데이트 중 보존할 입력",
+        "status": "todo",
+        "priority": "none",
+        "dueDate": null,
+        "projectId": null,
+        "processId": null,
+        "completedAt": null
+      },
+      {
+        "id": "d96accbe-4490-4cfe-a4b5-87947852696c",
+        "createdAt": "2026-11-19T08:45:11.786Z",
+        "updatedAt": "2026-11-19T08:45:11.786Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "title": "프로젝트 작업 폴더 정리",
+        "description": "이 항목은 완료 예시입니다. 필요하면 다시 할 일로 복원할 수 있습니다.",
+        "status": "done",
+        "priority": "none",
+        "dueDate": "2026-11-18",
+        "projectId": "f229ecd8-ab7b-42d7-9bea-de36840fb4d0",
+        "processId": null,
+        "completedAt": "2026-11-19T08:45:11.786Z"
+      },
+      {
+        "id": "e98e4ee3-a45d-4c88-9d51-152e42473b83",
+        "createdAt": "2026-11-19T08:45:11.777Z",
+        "updatedAt": "2026-11-19T08:45:11.777Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "title": "브랜드 소개 페이지 초안 다듬기",
+        "description": "첫 문단은 짧고 명확하게.\n\n• 핵심 메시지 정리\n• 팀 피드백 반영",
+        "status": "doing",
+        "priority": "high",
+        "dueDate": "2026-11-19",
+        "projectId": "f229ecd8-ab7b-42d7-9bea-de36840fb4d0",
+        "processId": "8661c2ed-7868-465d-b475-06d4fd25d126",
+        "completedAt": null
+      }
+    ],
+    "workLogs": [
+      {
+        "id": "0a309719-930d-4b60-bf1e-d16a652c6d18",
+        "createdAt": "2026-11-19T08:45:11.778Z",
+        "updatedAt": "2026-11-19T08:45:11.778Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "taskId": "e98e4ee3-a45d-4c88-9d51-152e42473b83",
+        "workDate": "2026-11-18",
+        "content": "기존 소개 페이지를 검토하고 핵심 메시지를 정리했습니다."
+      },
+      {
+        "id": "bdb8937d-7af0-471f-9704-42eabbeb5823",
+        "createdAt": "2026-11-19T08:45:11.779Z",
+        "updatedAt": "2026-11-19T08:45:11.779Z",
+        "version": 1,
+        "externalRef": null,
+        "sample": true,
+        "taskId": "e98e4ee3-a45d-4c88-9d51-152e42473b83",
+        "workDate": "2026-11-19",
+        "content": "첫 문단 초안을 작성했습니다.\n다음 작업: 팀 피드백을 받아 문장을 다듬기."
+      }
+    ],
+    "settings": [
+      {
+        "id": "preferences",
+        "createdAt": "2026-11-19T08:45:11.787Z",
+        "updatedAt": "2026-11-19T08:45:26.483Z",
+        "version": 30,
+        "externalRef": null,
+        "sample": false,
+        "onboarded": true,
+        "values": {
+          "view": "all",
+          "projectId": "",
+          "search": "",
+          "status": "",
+          "priority": "",
+          "sort": "created",
+          "includeCompleted": false
+        }
+      }
+    ]
+  }
+}

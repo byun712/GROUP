@@ -1,5 +1,5 @@
-const CACHE='moa-todo-assets-bd10f998af29c575';
-const ASSETS=["/todo/","/todo/config.js","/todo/assets/icon-192.png","/todo/assets/icon-512.png","/todo/assets/icon.svg","/todo/index.html","/todo/manifest.webmanifest","/todo/src/data/contracts.js","/todo/src/data/indexed-db.js","/todo/src/domain/model.js","/todo/src/domain/service.js","/todo/src/main.js","/todo/src/pwa.js","/todo/src/ui/app.js","/todo/src/ui/dom.js","/todo/styles.css"];
+const CACHE='moa-todo-assets-9020b5fbdb42489b';
+const ASSETS=["/todo/","/todo/config.js","/todo/assets/icon-192.png","/todo/assets/icon-512.png","/todo/assets/icon.svg","/todo/index.html","/todo/manifest.webmanifest","/todo/src/data/contracts.js","/todo/src/data/indexed-db.js","/todo/src/domain/model.js","/todo/src/domain/service.js","/todo/src/main.js","/todo/src/pwa.js","/todo/src/ui/app.js","/todo/src/ui/dom.js","/todo/src/ui/markdown.js","/todo/src/ui/views.js","/todo/src/ui/workspace.js","/todo/styles.css"];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
 self.addEventListener('message',event=>{if(event.data?.type==='ACTIVATE_TODO_UPDATE')self.skipWaiting();});
 self.addEventListener('activate',event=>event.waitUntil((async()=>{

@@ -1,12 +1,16 @@
-import {STORES} from '../domain/model.js';
+import {STORES,LEGACY_STORES,TASK_ADDITIONS} from '../domain/model.js';
 import {REPOSITORIES} from './contracts.js';
 export const DATABASE_NAME='group-todo-local';
-export const DATABASE_VERSION=1;
-// All schema upgrades live here, inside IDB's atomic versionchange transaction.
-// Future versions add `if (oldVersion < 2)`; never delete a user's database on error.
-export function migrateDatabase(db,oldVersion){
-  if(oldVersion<1){
-    for(const name of STORES)db.createObjectStore(name,{keyPath:'id'});
+export const DATABASE_VERSION=2;
+// Schema changes are atomic; existing IDs, text, dates and relations are retained.
+export function migrateDatabase(db,oldVersion,transaction){
+  if(oldVersion<1)for(const name of LEGACY_STORES)db.createObjectStore(name,{keyPath:'id'});
+  if(oldVersion<2){
+    for(const name of ['savedViews','templates','profiles'])db.createObjectStore(name,{keyPath:'id'});
+    const tasks=transaction.objectStore('tasks');
+    for(const key of ['parentId','assigneeId'])tasks.createIndex(key,key,{unique:false});
+    const cursor=tasks.openCursor();
+    cursor.onsuccess=()=>{const entry=cursor.result;if(!entry)return;entry.update({...structuredClone(TASK_ADDITIONS),...entry.value});entry.continue();};
   }
 }
 export function openDatabase(factory=globalThis.indexedDB,{onBlocked=()=>{},onVersionChange=()=>{}}={}){
@@ -14,7 +18,7 @@ export function openDatabase(factory=globalThis.indexedDB,{onBlocked=()=>{},onVe
     if(!factory){reject(new Error('이 브라우저에서 IndexedDB를 사용할 수 없습니다. 일반 브라우저 창에서 다시 열어 주세요.'));return;}
     const request=factory.open(DATABASE_NAME,DATABASE_VERSION);
     request.onupgradeneeded=event=>{
-      migrateDatabase(request.result,event.oldVersion);
+      migrateDatabase(request.result,event.oldVersion,request.transaction);
       if(event.oldVersion<1){
         for(const [store,key] of [['processes','projectId'],['tasks','projectId'],['tasks','processId'],['tasks','dueDate'],['workLogs','taskId']])request.transaction.objectStore(store).createIndex(key,key,{unique:false});
       }

@@ -1,5 +1,7 @@
 # 로컬 ToDo 구현·검증 기록
 
+> 이 문서는 0.1 당시 기록입니다. 현재 0.2의 기능·마이그레이션·검증 결과는 [V02-VERIFICATION.md](V02-VERIFICATION.md)를 먼저 읽으세요.
+
 이 문서의 아래 본문은 취소 전 로컬 구현 검증 기록입니다. 이후 GROUP main에서는 ToDo를 제외한 상태를 유지했고, 보관된 ToDo를 별도 `todo-standalone` 다운로드 브랜치로 분리했습니다. 다운로드 패키지의 추가 검증은 [DOWNLOAD-VERIFICATION.md](DOWNLOAD-VERIFICATION.md)를 참고하세요.
 
 확인일: **2026-11-19, 한국 시간**. 실제 연결된 저장소는 `https://github.com/byun712/GROUP`, 체크아웃은 `/workspace/GROUP`, 작업 브랜치는 `work`다. 시작 시 작업 트리는 깨끗했고 원격 fetch 결과 HEAD와 main은 `3e4e6930f70cda566036cec46e7d649e7a683223`로 일치했다. 이 버전의 ToDo는 별도 `todo/`에 구현했으며 GROUP 제품 파일과 운영 데이터를 수정하지 않았다.

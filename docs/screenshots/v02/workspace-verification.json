@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "real IndexedDB v1 to v2 upgrade preserves all original fields, IDs, relationships and dates",
+    "list board calendar share IDs, completion status and due-date movement",
+    "safe Markdown, wide edit draft preservation, child draft and inherited project move",
+    "new subtask save failure retains input, no false success, retry",
+    "template UI creates fresh parent and child IDs without completion or logs",
+    "combined filters identical across views, saved conditions persist and membership follows source",
+    "project totals use all top-level tasks, independent from visible filters",
+    "many calendar entries keyboard access, undated section, date-click creation",
+    "1366x768 and 1920x1080 list board calendar detail and wide screenshots, no page overflow",
+    "keyboard detail open and close preserves list scroll and focus",
+    "JSON export contains new models and hierarchy, schema version 2",
+    "discarded closed dialog drafts do not block PWA updates or navigation",
+    "production PWA cached new views support offline read/edit/reload with existing data"
+  ],
+  "viewports": [
+    "1366x768",
+    "1920x1080"
+  ],
+  "migration": "IndexedDB 1 -> 2",
+  "uncaughtErrors": []
+}

@@ -1,0 +1,43 @@
+{
+  "checks": [
+    "views/search/filters/date grouping/sort",
+    "long title full detail and empty-list layout",
+    "task CRUD/completion restore/log create edit/real timestamps",
+    "work-log save failure/retry and individual deletion",
+    "IndexedDB quota error preserves input and retry",
+    "cross-tab version conflict preserves draft",
+    "local project/process CRUD and valid task links",
+    "delete cancel/confirm and owned-log cascade",
+    "reload and actual Chromium profile restart persistence",
+    "cached offline reopen/read/edit/reload",
+    "service worker update guards unsaved draft and preserves DB",
+    "JSON export/validated restore/ToDo-only reset",
+    "deleted examples remain deleted",
+    "keyboard add/open and focus",
+    "ToDo-only SW scope/static caches/no GROUP API requests",
+    "Chromium native PWA install/launch",
+    "development SW disabled and unsupported install button hidden"
+  ],
+  "nativeInstall": {
+    "installed": {
+      "badgeCount": 0,
+      "fileHandlers": []
+    },
+    "launch": "CDP PWA.launch succeeded",
+    "standalone": true,
+    "storedTaskVisible": true,
+    "browserDisplayPreference": "standalone"
+  },
+  "viewports": [
+    "1366x768",
+    "1920x1080"
+  ],
+  "serviceWorker": {
+    "scope": "http://127.0.0.1:34899/todo/",
+    "script": "http://127.0.0.1:34899/todo/sw.js",
+    "rootControlled": false
+  },
+  "firstVersion": "9020b5fbdb42489b",
+  "secondVersion": "99d73fc12525e1f7",
+  "uncaughtErrors": []
+}

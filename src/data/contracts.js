@@ -5,7 +5,7 @@
  *
  * @template T
  * @typedef {{list:()=>Promise<T[]>, get:(id:string)=>Promise<T|undefined>, put:(record:T)=>Promise<void>, delete:(id:string)=>Promise<void>}} Repository
- * @typedef {{projects:Repository<import('../domain/model.js').Project>, processes:Repository<import('../domain/model.js').Process>, tasks:Repository<import('../domain/model.js').Task>, workLogs:Repository<import('../domain/model.js').WorkLog>, settings:Repository<Object>}} UnitOfWork
+ * @typedef {{projects:Repository<import('../domain/model.js').Project>, processes:Repository<import('../domain/model.js').Process>, tasks:Repository<import('../domain/model.js').Task>, workLogs:Repository<import('../domain/model.js').WorkLog>, settings:Repository<Object>, savedViews:Repository<import('../domain/model.js').SavedView>, templates:Repository<import('../domain/model.js').TaskTemplate>, profiles:Repository<import('../domain/model.js').LocalProfile>}} UnitOfWork
  * @typedef {{snapshot:()=>Promise<Object>, transaction:(stores:string[],work:(uow:UnitOfWork)=>Promise<any>)=>Promise<any>, close:()=>void}} RepositoryProvider
  * A future API adapter must preserve atomic writes, version conflicts and read scope.
  * An API response is mapped into these local models in data/group-mapper.js (future).
@@ -16,4 +16,7 @@ export class ProjectRepository extends EntityRepository {}
 export class ProcessRepository extends EntityRepository {}
 export class WorkLogRepository extends EntityRepository {}
 export class SettingsRepository extends EntityRepository {}
-export const REPOSITORIES={tasks:TaskRepository,projects:ProjectRepository,processes:ProcessRepository,workLogs:WorkLogRepository,settings:SettingsRepository};
+export class SavedViewRepository extends EntityRepository {}
+export class TaskTemplateRepository extends EntityRepository {}
+export class LocalProfileRepository extends EntityRepository {}
+export const REPOSITORIES={tasks:TaskRepository,projects:ProjectRepository,processes:ProcessRepository,workLogs:WorkLogRepository,settings:SettingsRepository,savedViews:SavedViewRepository,templates:TaskTemplateRepository,profiles:LocalProfileRepository};
